@@ -311,7 +311,14 @@ class VampyFrame(wx.Frame):
         folder = dirDlg.GetPath()
         dirDlg.Destroy()
         #TODO: add choice of file extension, tif or png
-        fileext = 'png'
+        extensions = ['png','tif']
+        extDlg = wx.SingleChoiceDialog(self, 'Choose image file type', 'File type', extensions)
+        if extDlg.ShowModal() != wx.ID_OK:
+            extDlg.Destroy()
+            return
+        fileext = extDlg.GetStringSelection()
+        extDlg.Destroy()
+        
         filenames = glob.glob(folder+'/*.'+fileext)
         if len(filenames) == 0:
             msg = "No such files in the selected folder!"
@@ -382,8 +389,8 @@ class VampyFrame(wx.Frame):
             self.OnError(mesg)
             return
         avergeom = vanalys.averageImages(aver, **geometry)
-#        geometryframe = VampyGeometryFrame(self, -1, **avergeom)
-#        geometryframe.Show()
+        geometryframe = VampyGeometryFrame(self, -1, **avergeom)
+        geometryframe.Show()
         
         tensiondata = vanalys.tension_evans(pressures, pressacc, scale, **avergeom)
         tensionframe = VampyTensionsFrame(self, -1, tensiondata)
@@ -523,7 +530,7 @@ class VampyTensionsFrame(wx.Frame):
 #            title = 'kappa = %f +- %f kT; K = %f +- %f mN/m'%(bend, bend_sd, elas/1000., elas_sd/1000.)
             title = 'kappa = %f kT; K = %f mN/m'%(bend, elas/1000.)
             f = vfit.alpha_Fournier()
-            self.axes.plot(x, f(fit, x), label = 'Rawitz fit')
+            self.axes.plot(x, f(fit, x), label = 'Fournier fit')
         self.axes.set_title(title)
         self.axes.legend()
         self.canvas.draw()

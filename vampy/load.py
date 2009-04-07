@@ -54,7 +54,10 @@ def preproc_images(images, orientation, crop):
     crop - dictionary with keys as SIDES,
            with respective relative crop amounts'''
     #crop image
-    images = images[:, crop['top']:-crop['bottom'], crop['left']:-crop['right']]
+    crop['bottom'] = images.shape[1] - crop['bottom']
+    crop['right'] = images.shape[2] - crop['right']
+    images = images[:,crop['top']:crop['bottom'], crop['left']:crop['right']]
+    
     # rotate according to orientation flag
     rolled = rollaxis(rollaxis(images, 1), 2, 1) #make first axis last
     if orientation == 'right':
