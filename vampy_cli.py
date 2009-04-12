@@ -3,7 +3,7 @@
 command-line interface to VAMP project
 """
 import sys  # for system level operations
-import glob # for file searchng
+import glob  # for file searchng
 
 #import vampy.features
 #import vampy.analysis
@@ -36,47 +36,47 @@ def get_input(defaults):
 
         print "Using defaults."
     else:
-        # gathering info on what files to load
+        ### gathering info on what files to load
         folder = ask_string('Directory to load?', 'img-phc')
         fileext = ask_string('File ext to load?', 'tif')
 
-        #image croppings
+        ### image croppings
         for side in sides:
             mesg = 'Cropping for %s side?'%side
             crop[side] = ask_int(mesg, 0)
 
-        #pipette orientation flag, member of piporientations
-        #means which side of the picture does pipette intersect
-        #is used afterwards to transforn the picture to the 'l' orientation
+        ### pipette orientation flag, member of piporientations
+        ### means which side of the picture does pipette intersect
+        ### is used afterwards to transforn the picture to the 'l' orientation
         mesg = 'Images orientation?'
         orientation = ask_choice(sides, mesg, 'left')
 
-        #estimation of the vesicle center closest to the pipette tip
+        ### estimation of the vesicle center closest to the pipette tip
         mesg = 'Minimal vesicle edge estimation?'
         arg_dict['minvesest'] = ask_int(mesg, 440)
 
-        #estimation of aspirated tip closest to the pipette tip
+        ### estimation of aspirated tip closest to the pipette tip
         mesg = 'Minimal aspirated edge estimation?'
         arg_dict['minaspest'] = ask_int(mesg, 240)
 
-        # check input params
+        ### check input params
         if not (arg_dict['minvesest'] > arg_dict['minaspest'] and
                 arg_dict['minaspest'] > arg_dict['maxpipoffset']):
             print 'Wrong parameters. Exiting...'
             sys.exit()
 
-        #width parameter for a gaussian filtering
+        ### width parameter for a gaussian filtering
         mesg = 'Gauss presmoothing strength?'
         arg_dict['sigma'] = ask_float(mesg, 3.0)
 
-        #mismatch parameter for a fit judging
+        ### mismatch parameter for a fit judging
         mesg = 'Subpixel mismatch judjing?'
         arg_dict['mismatch'] = ask_float(mesg, 3.0)
 
-        # whether to output additional info
+        ### whether to output additional info
         arg_dict['extra'] = ask_bool('Make extra output?', False)
 
-    # generating list of filenames
+    ### generating list of filenames
     filenames = glob.glob(folder+'/*.'+fileext) #somehow can't sort right here
     if len(filenames) == 0:
         print 'No such files can be found. Exiting...'
@@ -95,12 +95,12 @@ def get_input(defaults):
     return arg_dict, folder
 
 def main():
-    # get input parameters as well load images from files
+    ### get input parameters as well load images from files
     arg_dict, folder = get_input(ask_bool('Proceed with defaults?', True))
-    # actuall call for feature extraction procedure
+    ### actuall call for feature extraction procedure
     out, extra_out = features.locate(**arg_dict)
 
-    if len(extra_out) > 0: # dummy for extra returned parameters
+    if len(extra_out) > 0:  # dummy for extra returned parameters
         output_cli.extra_output(extra_out)
 
     geometry, mesg = analysis.get_geometry(**out)
@@ -111,8 +111,8 @@ def main():
         output_cli.plot_output(**geometry)
 
 if __name__ == '__main__':
-    # this is executed only if this source file is run separately
-    # and not imported as module to another source file.
+    ### this is executed only if this source file is run separately
+    ### and not imported as module to another source file.
     print '='*20
     print "Command-line interface to VAMP project."
     print '='*20

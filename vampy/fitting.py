@@ -42,7 +42,7 @@ class fitcurve():
         fit, cov, info, mesg, success = leastsq(
             errfunc, self.pinit, (self.x, self.y), Dfun = self.Dfun, full_output=1, **self.lsq_kwargs)
         df = len(self.x)-len(fit)
-        #this correction is according to http://thread.gmane.org/gmane.comp.python.scientific.user/19482
+        ### this correction is according to http://thread.gmane.org/gmane.comp.python.scientific.user/19482
         see = sqrt((errfunc(fit, self.x, self.y)**2).sum()/df)
         if cov == None:
             stderr = None
@@ -56,7 +56,7 @@ def odrlin(x,y, sx, sy):
     @params x, y: data to fit
     @param sx, sy: respective errors of data to fit
     """
-    model = models.unilinear #defines model as beta[0]*x + beta[1]
+    model = models.unilinear  # defines model as beta[0]*x + beta[1]
     data = RealData(x,y,sx=sx,sy=sy)
     kinit = (y[-1]-y[0])/(x[-1]-x[0]) 
     init = (kinit, y[0]-kinit*x[0])
@@ -102,7 +102,7 @@ def linregr(x,y):
     @params x, y: data to fit as numpy array
     """
     slope, intercept, r, prob2, see = linregress(x,y)
-    see = sqrt(((y-slope*x-intercept)**2).sum()/(len(x)-2)) # apparently there is a bug in stats.linregress as of scipy 0.7
+    see = sqrt(((y-slope*x-intercept)**2).sum()/(len(x)-2))  # apparently there is a bug in stats.linregress as of scipy 0.7
     mx = x.mean()
     sx2 = ((x-mx)**2).sum()
     sd_intercept = see * sqrt((x*x).sum()/sx2/len(x))
@@ -123,9 +123,9 @@ def fit_linear(x, y):
    
 def fit_si(y, x0):
     '''Fits equidistant (=1) 1D data with integral sine.'''
-    # fitting function
+    ### fitting function
     integralsine = lambda p, x: p[0] + p[1] * sici((x - p[2]) / p[3])[0]
-    # choose initial params
+    ### choose initial params
     pinit = (y[x0], y.ptp() / 3.7, x0, (y.argmax() - y.argmin()) / (2 * pi))
     x = linspace(0, y.size - 1, y.size)
     si_fit = fitcurve(integralsine, x, y, pinit)
@@ -133,9 +133,9 @@ def fit_si(y, x0):
    
 def fit_gauss(y, sgn):
     '''fit gaussian bell to 1-d equidistant(=1) data y'''
-    # fitting function - Gaussian bell
+    ### fitting function - Gaussian bell
     gauss = lambda p, x: p[0] + p[1] * exp(-(x-p[2])**2/(2*p[3]**2))
-    # choose the right init params for max and min cases
+    ### choose the right init params for max and min cases
     if sgn == 1:
         pinit = (min(y), sgn*y.ptp(), y.argmax(), y.size/4)
     elif sgn == -1:
@@ -145,4 +145,4 @@ def fit_gauss(y, sgn):
     return gauss_fit.fit()
       
 if __name__ == '__main__':
-	print __doc__
+    print __doc__

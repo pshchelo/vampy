@@ -2,7 +2,7 @@
 """
 output of various data for VAMP project
 """
-#for plotting
+### for plotting
 import pylab
 from numpy import linspace, log, pi
 
@@ -61,7 +61,7 @@ def plot_output(**kwargs):
 
 def extra_output(args):
     ''''''
-    pass # dummy for extra returned parameters
+    pass  # dummy for extra returned parameters
 
 def plot_tensions(**kwargs):
     tau = kwargs['tension']

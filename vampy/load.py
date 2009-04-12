@@ -3,7 +3,7 @@
 loading of various data for VAMP project
 """
 from scipy import asarray, empty, rollaxis, rot90
-# for loading images to numpy arrays with PIL
+### for loading images to numpy arrays with PIL
 from scipy import misc
 
 SIDES = ['left', 'right', 'top', 'bottom']
@@ -16,10 +16,13 @@ def read_grey_image(filename):
     except(IOError):
         mesg = "Error: Can't open file %s!"%filename
         return None, mesg
-    #check for greyscale
+    ### check for greyscale
     if img.ndim > 2:
         mesg = "Error: file %s is not greyscale!"%filename
         return None, mesg
+    ### check if the image was more than 8-bit - scipy/PIL has a bug on it
+    if img.dtype == int32:
+        img = asrray(asfarray(img), int32)
     return img, mesg
 
 def read_images(filenames):
@@ -37,11 +40,11 @@ def read_images(filenames):
         return None, mesg
     images = empty((len(filenames), test.shape[0], test.shape[1]), test.dtype)
     for index, filename in enumerate(filenames):
-        # open the image file
+        ### open the image file
         img, mesg = read_grey_image(filename)
         if mesg:
             return None, mesg
-        #test that the image has the same shape as others
+        ### test that the image has the same shape as others
         if img.shape != test.shape:
             mesg = 'Error: Images have different dimensions!'
             return None, mesg
@@ -53,20 +56,20 @@ def preproc_images(images, orientation, crop):
     orientations - member of SIDES
     crop - dictionary with keys as SIDES,
            with respective relative crop amounts'''
-    #crop image
+    ### crop image
     crop['bottom'] = images.shape[1] - crop['bottom']
     crop['right'] = images.shape[2] - crop['right']
     images = images[:,crop['top']:crop['bottom'], crop['left']:crop['right']]
     
-    # rotate according to orientation flag
-    rolled = rollaxis(rollaxis(images, 1), 2, 1) #make first axis last
+    ### rotate according to orientation flag
+    rolled = rollaxis(rollaxis(images, 1), 2, 1)  # make first axis last
     if orientation == 'right':
-        rolled = rot90(rolled, 2) #rot90 rotates only 2 first axes
+        rolled = rot90(rolled, 2)  # rot90 rotates only 2 first axes
     if orientation == 'top':
         rolled = rot90(rolled, 1)
     elif orientation == 'bottom':
         rolled = rot90(rolled, 3)
-    return rollaxis(rolled, 2) #bring the original first axis back from last
+    return rollaxis(rolled, 2)  # bring the original first axis back from last
 
 def read_pressures(filename, stage):
     """

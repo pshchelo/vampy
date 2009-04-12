@@ -2,9 +2,9 @@
 """
 output of various data for VAMP project tailored for CLI version
 """
-#setting this here since for CLI it should be the first time to use plotting
+### setting this here since for CLI it should be the first time to use plotting
 from matplotlib import use
-use('WxAgg')# keeping this only for the CLI version
+use('WxAgg')  # keeping this only for the CLI version
 import output as vout
 
 def file_output(folder, piprad, **kwargs):

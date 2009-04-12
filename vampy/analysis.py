@@ -9,8 +9,8 @@ more details are documented in vamp.tex
 prerequisites - installed numpy, scipy
 
 '''
-from numpy import all, asarray, ones_like #arrays operators
-from numpy import pi, sqrt, square, log, fabs, exp #functions over arrays
+from numpy import all, asarray, ones_like  # arrays operators
+from numpy import pi, sqrt, square, log, fabs, exp  # functions over arrays
 from numpy import savetxt
 import fitting as vfit
 
@@ -26,7 +26,7 @@ def averageImages(aver, **kwargs):
 def get_geometry(**kwargs):
     '''Calculate geometry of the system based on extracted features'''
     metrics, metrics_err = kwargs['metrics']
-    piprad, piprad_err = kwargs['piprads'] #since piprad is measured directly, no scaling with metric is needed
+    piprad, piprad_err = kwargs['piprads']  # since piprad is measured directly, no scaling with metric is needed
     pips, pips_err = kwargs['pips']
     asps, asps_err = kwargs['asps']
     vess, vess_err = kwargs['vess']
@@ -37,20 +37,20 @@ def get_geometry(**kwargs):
     vesl = (vess - pips) * metrics
     vesl_err = sqrt((pips_err**2 + vess_err**2) * metrics**2 + (vess-pips)**2 * metrics_err**2)
     
-    #outer vesicle radius
+    ### outer vesicle radius
     vesrad = (vesl**2 - piprad**2) / (2 * vesl)
     term = piprad**2 / (vesl**2)
     vesrad_err = sqrt(term * piprad_err**2 + (1+term)**2 * vesl_err**2 / 4.0)
 
-    #total vesicle surface and area
-    # outer part
+    ### total vesicle surface and area
+    ### outer part
     area = pi*(vesl**2 + piprad**2)
     area_err = 2*pi * sqrt(vesl**2 * vesl_err**2 + piprad**2 * piprad_err**2)
     volume = (3*piprad**2 + vesl**2) * vesl * pi/6.0
     volume_err = 0.5*pi * sqrt(4 * piprad**2 * vesl**2 * piprad_err**2 +
                                 vesl_err**2 * (piprad**2 + vesl**2)**2)
 
-    # plus aspirated part depending on the length of aspirated part
+    ### plus aspirated part depending on the length of aspirated part
     piprads = piprad*ones_like(aspl)
     cond1 = (piprads <= aspl)
     cond2 = (aspl < piprads) & (aspl >= 2*vesrad - vesl)
@@ -87,7 +87,7 @@ def get_geometry(**kwargs):
     results['piprad'] = kwargs['piprads']
     return results, None
 
-#model for tension
+### model for tension
 def tension_evans(P, dP, scale, **kwargs):
     """
     Calculate tensions based on geometry and pressures
@@ -99,7 +99,7 @@ def tension_evans(P, dP, scale, **kwargs):
     Rv, dRv = kwargs['vesrad']
     Rp = piprad.mean()
     dRp = sqrt(square(piprad_err).sum())/len(piprad_err)
-    #the simplest model for tensions from Evans1987
+    ### the simplest model for tensions from Evans1987
     tau = 0.5*P/(1/Rp-1/Rv)*scale
     tau_err = sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
 #    tau_err[0]=0.5*dP/(1/Rp-1/Rv[0])*scale # could be avoided if he above line is written without 1/P
@@ -113,14 +113,14 @@ def tension_evans(P, dP, scale, **kwargs):
 #    savetxt('img-phc-data.csv', asarray((tau, alpha, tau_err, alpha_err)).transpose(), delimiter='\t')
     return tensiondata
 
-#alpha ~ log(tau), simple model
+### alpha ~ log(tau), simple model
 def dilation_bend_evans(tau, slope, intercept):
     return slope*log(tau)+intercept
 
 def dilation_elas_evans(tau, slope, intercept):
     return slope*tau+intercept
 
-#model for kappa from alpha ~ log(tau), simple model
+### model for kappa from alpha ~ log(tau), simple model
 def bending_evans(tau, alpha, tau_sd, alpha_sd):
     fit = vfit.odrlin(log(tau), alpha, tau_sd/tau, alpha_sd)
     slope, intercept = fit.beta
@@ -143,6 +143,6 @@ def bend_elas_evans(tau, A, tau_sd, A_sd):
     fit = vfit.odr_Rawitz(tau, A, tau_sd, A_sd)
     
 if __name__ == '__main__':
-    # this is executed only if this source file is run separately
-    # and not imported as module to another source file.
+    ### this is executed only if this source file is run separately
+    ### and not imported as module to another source file.
     print __doc__

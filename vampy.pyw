@@ -2,10 +2,12 @@
 """
 wxPython GUI for VAMP project
 TODO: add values export to files
+TODO: create (or copy?) a wx.Frame subclass for holding a matplotlib plot,
+probably with the toolbar and status bar
 """
 import glob, sys, os
 OWNPATH = sys.path[0]
-##import re
+#import re
 
 import wx
 
@@ -24,8 +26,8 @@ from myutils.mywx import NumValidator, rgba_wx2mplt
 from myutils.base64icons import GetIconBundle
 
 SIDES = ['left','right','top','bottom']
-DEFAULT_SCALE = '0.3225' #Teli CS3960DCL, 20x objective
-DEFAULT_PRESSACC = '0.00981' # 1 micrometer of water stack
+DEFAULT_SCALE = '0.3225'  # Teli CS3960DCL, 20x objective
+DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
 
 class VampyMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
@@ -196,7 +198,7 @@ class VampyImagePanel(wx.Panel):
         slidersizer.Add(self.ImgNoSlider, 1, wx.GROW)
         
         self.paramsliders = {}
-        # structure - name:(title, colour, initial value); initial value < 0 means from the end
+        ### structure - name:(title, colour, initial value); initial value < 0 means from the end
         self.paramsdata = {'minaspest':('Aspirated', 'yellow', 1), 'minvesest':('Vesicle','green', -1)}
         for key in sorted(self.paramsdata.keys()):
             label = wx.StaticText(self, -1, self.paramsdata[key][0])
@@ -371,7 +373,7 @@ class VampyFrame(wx.Frame):
             return
         params.update(self.imgpanel.GetParams())
         
-        #testing if 'cancel' was pressed somewhere (None is returned)
+        ### testing if 'cancel' was pressed somewhere (None is returned)
         try:
             pressures, pressacc, scale = self.GetExtraUserData()
         except(TypeError):
