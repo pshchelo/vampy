@@ -2,7 +2,7 @@
 """
 test pieces for VAMP project
 """
-#from scipy cookbook
+### from scipy cookbook
 def smooth(x,window_len=10,window='hanning'):
     """smooth the data using a window with requested size.
 
@@ -59,6 +59,35 @@ def smooth(x,window_len=10,window='hanning'):
     y=numpy.convolve(w/w.sum(),s,mode='same')
     return y[window_len-1:-window_len+1]
 
+### found on scipy-users mailing list
+def canny(image, high_threshold, low_threshold):
+    '''Canny edge finding'''
+    grad_x = ndimage.sobel(image, 0)
+    grad_y = ndimage.sobel(image, 1)
+    grad_mag = numpy.sqrt(grad_x**2+grad_y**2)
+    grad_angle = numpy.arctan2(grad_y, grad_x)
+    # next, scale the angles in the range [0, 3] and then round to quantize
+    quantized_angle = numpy.around(3 * (grad_angle + numpy.pi) / (numpy.pi * 2))
+    # Non-maximal suppression: an edge pixel is only good if its  magnitude is
+    # greater than its neighbors normal to the edge direction. We quantize
+    # edge direction into four angles, so we only need to look at four
+    # sets of neighbors
+    NE = ndimage.maximum_filter(grad_mag, footprint=_NE)
+    W  = ndimage.maximum_filter(grad_mag, footprint=_W)
+    NW = ndimage.maximum_filter(grad_mag, footprint=_NW)
+    N  = ndimage.maximum_filter(grad_mag, footprint=_N)
+    thinned = (((grad_mag > W)  & (quantized_angle == _N_d )) |
+              ((grad_mag > N)  & (quantized_angle == _W_d )) |
+              ((grad_mag > NW) & (quantized_angle == _NE_d)) |
+              ((grad_mag > NE) & (quantized_angle == _NW_d)) )
+    thinned_grad = thinned * grad_mag
+    # Now, hysteresis thresholding: find seeds above a high threshold,  then
+    # expand out until we go below the low threshold
+    high = thinned_grad > high_threshold
+    low = thinned_grad > low_threshold
+    canny_edges = ndimage.binary_dilation(high, iterations=-1, mask=low)
+    return grad_mag, thinned_grad, canny_edges
+
 def maxpeakspos(ar, delta=10):
     '''in array find positions of peaks with given width delta (default = 10)'''
     peaks = asarray(())
@@ -66,6 +95,7 @@ def maxpeakspos(ar, delta=10):
         if ar[i] == max(ar[i-delta/2:i+delta/2]):
             peaks = append(peaks, i)
     return peaks.astype(int)
+
 def peakspos(mode, ar, nPeaks, delta=5):
     '''in 1d-array ar find positions of (minimal or maximal) peaks
     with given halfwidth delta (default = 5), sort them according to
@@ -152,8 +182,6 @@ def minpeaksspos(ar, nPeaks, delta=10):
 
     return peaks[0,:].astype(int)
 
-
-
 def deriv(ar):
     '''calculate derivative of data in numpy-array ar
 
@@ -187,7 +215,7 @@ def fitBoltzm(y,x0,plot = 'no'):
     x = linspace(0,y.size-1, y.size)
     pinit = (min(y),y.ptp(),x0,-y.ptp()/((y[x0+1]-y[x0-1])*2))
     fit = optimize.leastsq(errfunc, pinit, args=(x,y))
-    #test plotting
+    ### test plotting
     if plot == 'yes':
         xplot = linspace(0,y.size-1)
         p.plot(xplot,fitfunc(fit[0],xplot), color = 'red')
@@ -201,63 +229,63 @@ def fitErf(y,x0,plot = 'no'):
     x = linspace(0,y.size-1, y.size)
     pinit = (y[x0],y.ptp()/2.0,x0,2.0*y.ptp()/((y[x0+1]-y[x0-1])*sqrt(pi)))
     fit = optimize.leastsq(errfunc, pinit, args=(x,y))
-    #test plotting
+    ### test plotting
     if plot == 'yes':
         xplot = linspace(0,y.size-1)
         p.plot(xplot,fitfunc(fit[0],xplot), color = 'green')
         p.plot(xplot,fitfunc(pinit,xplot), color = 'yellow')
     return fit
 
-##peakspos = maxpeakspos(line) #positions of peaks
+#peakspos = maxpeakspos(line) #positions of peaks
 
 #positions of peaks sorted ascending by the peak value
-##peakspossorted = take(peakspos, argsort(take(line, peakspos)))
+#peakspossorted = take(peakspos, argsort(take(line, peakspos)))
 
 #check for double entries and find 3 maximal values
 
 #this is a straight-forward element-wise elimination of double entries
-##maximapos = zeros(3)
-##i = 0
-##j=1
-##sort out plateu-like peaks
-##while i <= 2:
-##    if line[peakspossorted[-j-1]] != line[peakspossorted[-j]]:
-##        maximapos[i] = peakspossorted[-j]
-##        i += 1
-##    j += 1
+#maximapos = zeros(3)
+#i = 0
+#j=1
+#sort out plateu-like peaks
+#while i <= 2:
+#    if line[peakspossorted[-j-1]] != line[peakspossorted[-j]]:
+#        maximapos[i] = peakspossorted[-j]
+#        i += 1
+#    j += 1
 
 # this is too twisted, but it's somehow the numpy way
 # (no direct element-wise operations) and it works.
 # but can it be simplified??? it's too non-Pythonic...
-##maximapos = take(peakspossorted, searchsorted(take(line,peakspossorted),
-##                unique(sort(take(line,peakspos)))))
+#maximapos = take(peakspossorted, searchsorted(take(line,peakspossorted),
+#                unique(sort(take(line,peakspos)))))
 
 # assuming we are interested only in 3 highest peaks (2 from pipette
 # and 1 from outer vesicle) and lowest minimum (vesivle tip)
-##maximapos = append(maximapos[maximapos.size-3:],minpeak)
-##
-##print "4 points of interest are at:", maximapos
+#maximapos = append(maximapos[maximapos.size-3:],minpeak)
+#
+#print "4 points of interest are at:", maximapos
 
 #===============================================================================
-##
-##f = maxroot(deriv(line))
-##
-##
-##fsorted = argsort(f)
-##
-##for i in range(1,11):
-##    print f[fsorted[-i]], line[fsorted[-i]][0]
+#
+#f = maxroot(deriv(line))
+#
+#
+#fsorted = argsort(f)
+#
+#for i in range(1,11):
+#    print f[fsorted[-i]], line[fsorted[-i]][0]
 
 
-##x = linspace(0,profile.size,profile.size)
-##tck = interpolate.splrep(x,profile)
-##x1 = linspace(0,profile.size,profile.size*100)
-##y = interpolate.splev(x1, tck)
-##plot(x,profile, 'o', x1,y)
+#x = linspace(0,profile.size,profile.size)
+#tck = interpolate.splrep(x,profile)
+#x1 = linspace(0,profile.size,profile.size*100)
+#y = interpolate.splev(x1, tck)
+#plot(x,profile, 'o', x1,y)
 
-##file = open('test.out', 'w')
-##writer = csv.writer(file, delimiter = '\t')
-##for i in range(line.shape[0]-1):
-##    out = (line[i][0], line[i][1], deriv[i][0], deriv[i][1])
-##    writer.writerow(out)
-##file.close()
+#file = open('test.out', 'w')
+#writer = csv.writer(file, delimiter = '\t')
+#for i in range(line.shape[0]-1):
+#    out = (line[i][0], line[i][1], deriv[i][0], deriv[i][1])
+#    writer.writerow(out)
+#file.close()

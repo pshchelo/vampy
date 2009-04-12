@@ -1,4 +1,4 @@
-#! /bin/env python
+#!/bin/env python
 """
 Collection of GUI elements created by Pavlo Shchelokovskyy.
 This module cannot be used on it own.
@@ -85,9 +85,9 @@ class NumValidator(wx.PyValidator):
         """
         txtCtrl = self.GetWindow()
         value = txtCtrl.GetValue()
-        #leftovers from trying to make it with regular expressions
-##        intpattern = r"^[-]?[0-9]+$"
-##        floatpattern = r"^[-]?[0-9]*\.?[0-9]+([eE][-]?[0-9]+)?$"
+        ### leftovers from trying to make it with regular expressions
+#        intpattern = r"^[-]?[0-9]+$"
+#        floatpattern = r"^[-]?[0-9]*\.?[0-9]+([eE][-]?[0-9]+)?$"
         if self.flag == 'int':
             try:
                 number = int(value)

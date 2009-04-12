@@ -71,6 +71,6 @@ def ask_string(mesg, default):
     return answer
 
 if __name__ == '__main__':
-    # this is executed only if this source file is run separately
-    # and not imported as module to another source file.
+    ### this is executed only if this source file is run separately
+    ### and not imported as module to another source file.
     print __doc__
