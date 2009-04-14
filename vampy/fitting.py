@@ -63,6 +63,11 @@ def odrlin(x,y, sx, sy):
     linodr = ODR(data, model, init)
     return linodr.run()
 
+def odrlinlog(x,y,sx,sy):
+    logx = log(x)
+    slogx = sx/x
+    return odrlin(logx, y, slogx, sy)
+
 def alpha_Rawitz(flag):
     if flag == 'sphere':
         coeff = 1/24/pi
@@ -110,7 +115,7 @@ def linregr(x,y):
     #FIXME: check this by comparing with something else (Origin?)
     return slope, sd_slope, intercept, sd_intercept
 
-def fit_linear(x, y):
+def fit_nlsLinear(x, y):
     """
     Linear regression of data made with ONLS
     @param y: 1d-numpy array of y-values, element index is x-value
@@ -120,7 +125,7 @@ def fit_linear(x, y):
     pinit = [kinit, y[0] - kinit * x[0]]
     linfit = fitcurve(linear, x, y, pinit)
     return linfit.fit()
-   
+
 def fit_si(y, x0):
     '''Fits equidistant (=1) 1D data with integral sine.'''
     ### fitting function
