@@ -9,9 +9,8 @@ more details are documented in vamp.tex
 prerequisites - installed numpy, scipy
 
 '''
-from numpy import all, asarray, ones_like  # arrays operators
-from numpy import pi, sqrt, square, log, fabs, exp  # functions over arrays
-from numpy import savetxt
+from numpy import pi, sqrt, square, log, fabs, exp  # most common for convenience
+import numpy as np
 import fitting as vfit
 
 def averageImages(aver, **kwargs):
@@ -20,7 +19,7 @@ def averageImages(aver, **kwargs):
             val, err = kwargs[key]
             val = val.reshape((-1,aver)).mean(axis=1)
             err = err.reshape((-1,aver)).mean(axis=1)
-            kwargs[key] = asarray((val, err))
+            kwargs[key] = np.asarray((val, err))
     return kwargs
 
 def get_geometry(**kwargs):
@@ -51,10 +50,10 @@ def get_geometry(**kwargs):
                                 vesl_err**2 * (piprad**2 + vesl**2)**2)
 
     ### plus aspirated part depending on the length of aspirated part
-    piprads = piprad*ones_like(aspl)
+    piprads = piprad*np.ones_like(aspl)
     cond1 = (piprads <= aspl)
     cond2 = (aspl < piprads) & (aspl >= 2*vesrad - vesl)
-    if not all(cond1^cond2): # XOR, checking that they are complimentary
+    if not np.all(cond1^cond2): # XOR, checking that they are complimentary
         mesg = "Error with detected features in aspirated part\n"
         mesg += "Detected aspirated tip is closer\
                 to the pipette mouth than possible\n"
@@ -79,11 +78,11 @@ def get_geometry(**kwargs):
                                 4 * piprads**2 * aspl**2 * piprad_err**2 +
                                 aspl_err**2 * (piprads**2 + aspl**2)))[cond2]
     results = {}
-    results['aspl'] = asarray((aspl,aspl_err))
-    results['vesl'] = asarray((vesl,vesl_err))
-    results['vesrad'] = asarray((vesrad,vesrad_err))
-    results['area'] = asarray((area,area_err))
-    results['volume'] = asarray((volume,volume_err))
+    results['aspl'] = np.asarray((aspl,aspl_err))
+    results['vesl'] = np.asarray((vesl,vesl_err))
+    results['vesrad'] = np.asarray((vesrad,vesrad_err))
+    results['area'] = np.asarray((area,area_err))
+    results['volume'] = np.asarray((volume,volume_err))
     results['piprad'] = kwargs['piprads']
     return results, None
 
@@ -108,9 +107,9 @@ def tension_evans(P, dP, scale, **kwargs):
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
     
     tensiondata = {}
-    tensiondata['tension'] = asarray((tau, tau_err))
-    tensiondata['dilation'] = asarray((alpha,alpha_err))
-#    savetxt('img-phc-data.csv', asarray((tau, alpha, tau_err, alpha_err)).transpose(), delimiter='\t')
+    tensiondata['tension'] = np.asarray((tau, tau_err))
+    tensiondata['dilation'] = np.asarray((alpha,alpha_err))
+#    np.savetxt('img-phc-data.csv', np.asarray((tau, alpha, tau_err, alpha_err)).transpose(), delimiter='\t')
     return tensiondata
 
 ### alpha ~ log(tau), simple model

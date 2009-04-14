@@ -11,11 +11,13 @@ more details are documented in vamp.tex
 prerequisites - installed numpy, scipy
 '''
 #for arrays and math
-from scipy import append, argmax, argmin, argsort, array, asarray, average, compress, \
-                diag, empty, empty_like, exp, fabs, linspace, ndimage, ones_like, optimize, \
-                pi, sign, sort, special, sqrt, square, sum, zeros
-PIX_ERR = 0.5 # error for pixel resolution
+from numpy import pi, sqrt, square, sum  # these are the most common ones just for convenience
+import numpy as np
+from scipy import ndimage, optimize, special
+
 import fitting as vfit
+
+PIX_ERR = 0.5 # error for pixel resolution
 
 def line_profile(img, point1, point2):
     '''define the brightness profile along the line defined by 2 points
@@ -32,35 +34,35 @@ def line_profile(img, point1, point2):
     k = (y2 - y1) / (x2 - x1)
     b = y1 - k*x1
     
-    dk = sqrt(dy1*dy1 + dy2*dy2 + k*k*(dx1*dx1+dx2*dx2) )/fabs(x2-x1)
+    dk = sqrt(dy1*dy1 + dy2*dy2 + k*k*(dx1*dx1+dx2*dx2) )/np.fabs(x2-x1)
 
     # number of points for profile
     # it is assumed that pipette is more or less horizontal
     # so that axis intersects left and right image sides
-    nPoints = max(fabs(k) * (img.shape[1] - 1) + 1, img.shape[1])
+    nPoints = max(np.fabs(k) * (img.shape[1] - 1) + 1, img.shape[1])
 
     #coordinates of points in the profile
-    x = linspace(0, img.shape[1] - 1, nPoints)
-    y = linspace(b, k * (img.shape[1] - 1) + b, nPoints)
+    x = np.linspace(0, img.shape[1] - 1, nPoints)
+    y = np.linspace(b, k * (img.shape[1] - 1) + b, nPoints)
 
     #calculate profile metric - coefficient for lengths in profile vs pixels
-    if fabs(k) <=1:
+    if np.fabs(k) <=1:
         metric = sqrt(1 + k*k)
-        metric_err = fabs(k)*dk/metric
+        metric_err = np.fabs(k)*dk/metric
     else:
         metric = sqrt(1 + 1/(k*k))
-        metric_err = dk/fabs(metric * k*k*k)
+        metric_err = dk/np.fabs(metric * k*k*k)
     #output interpolated values at points of profile and profile metric
     return metric, metric_err, ndimage.map_coordinates(img, [y, x], output = float)
 
 def jumps_pos_steep(ar, nJumps):
     '''Finds nJumps steepest jumps (of width 1) in equidistant(=1) 1D array'''
-    jumps = zeros((2, nJumps))
+    jumps = np.zeros((2, nJumps))
     for i in range(0, ar.size - 2):
-        jump = fabs(ar[i] - ar[i+1])
+        jump = np.fabs(ar[i] - ar[i+1])
         if jump > min(jumps[1, :]):
-            jumps[:, argmin(jumps[1, :])] = asarray((i, jump))
-    return sort(jumps[0, :].astype(int))
+            jumps[:, np.argmin(jumps[1, :])] = np.asarray((i, jump))
+    return np.sort(jumps[0, :].astype(int))
 
 def find_peak(ar, centerest):
     '''Fits a peak to equidistant (=1) 1D data.'''
@@ -87,7 +89,7 @@ def find_peak(ar, centerest):
     y = ar[left:right+1]
     m = sgn * max(sgn * y[0], y[-1] * sgn)
     condition = (y * sgn >= sgn * m)
-    y = compress(condition, y)
+    y = np.compress(condition, y)
     # find the shift introduced by previous steps
     if ar[left] == y[0]:
         shift = left
@@ -111,8 +113,8 @@ def wall_points_phc(img, refsx, sigma, extra):
     (walls are inner inflection points of inner minima on the profile)
     '''
     extra_walls = []
-    refs = array([])
-    refs_err = array([])
+    refs = np.array([])
+    refs_err = np.array([])
     for refx in refsx:
         if extra:
             extra_wall = {}
@@ -120,18 +122,18 @@ def wall_points_phc(img, refsx, sigma, extra):
                 ndimage.gaussian_laplace(img[:, refx], sigma).astype(float), 8)
         y = img[:, refx]
 
-        fit = fit_peak(y, jumps[1] + argmin(y[jumps[1]:jumps[2]]))
+        fit = fit_peak(y, jumps[1] + np.argmin(y[jumps[1]:jumps[2]]))
         a, b, x0, s = fit[0]
-        refs = append(refs, asarray((x0 + s, refx)), axis = 1)
+        refs = np.append(refs, np.asarray((x0 + s, refx)), axis = 1)
         #taking err_x0+err_s while ref = x0+s
-        refs_err = append(refs_err, sum(sqrt(diag(fit[1])[2:])))
+        refs_err = np.append(refs_err, sum(sqrt(np.diag(fit[1])[2:])))
         if extra:
             extra_wall['fit1'] = fit[0]
 
-        fit = fit_peak(y, jumps[5] + argmin(y[jumps[5]:jumps[6]]))
+        fit = fit_peak(y, jumps[5] + np.argmin(y[jumps[5]:jumps[6]]))
         a, b, x0, s = fit[0]
-        refs = append(refs, asarray((x0 - s, refx)), axis = 1)
-        refs_err = append(refs_err, sum(sqrt(diag(fit[1])[2:])))
+        refs = np.append(refs, np.asarray((x0 - s, refx)), axis = 1)
+        refs_err = np.append(refs_err, sum(sqrt(np.diag(fit[1])[2:])))
         if extra:
             extra_wall['fit2'] = fit[0]
             extra_wall['profile'] = y
@@ -143,16 +145,16 @@ def max_edges(ar):
     Finds leftmost and rightmost indices of clipped elements in an array
     @param ar: array which is clipped by some value (has max plateaus)
     '''
-    ind = argsort(ar) # ascending indices of an array 
+    ind = np.argsort(ar) # ascending indices of an array 
     condition = (ar[ind] == ar.max()) #condition for clipped values
-    ind = compress(condition, ind) # leave only those where condition is met
+    ind = np.compress(condition, ind) # leave only those where condition is met
     return ind.min(), ind.max()
 
 def wall_points_phc_2(img, refsx, mismatch, extra):
     ''''''
     extra_walls = []
-    refs = array([])
-    refs_err = array([])
+    refs = np.array([])
+    refs_err = np.array([])
     for refx in refsx:
 #        print refx
         if extra:
@@ -164,34 +166,34 @@ def wall_points_phc_2(img, refsx, mismatch, extra):
 
         edgel1, edger1 = max_edges(y[edgel:middle])
         shift = edgel
-        centerest = shift+edgel1+argmin(y[shift+edgel1:shift+edger1+1])
+        centerest = shift+edgel1+np.argmin(y[shift+edgel1:shift+edger1+1])
         fit = fit_peak(y, centerest)
         err = fiterr(fit)
         if (fit[-1] != 1) or (err == None) or (sum(err[2:]) >= mismatch):
-            refs = append(refs, asarray((centerest, refx)), axis = 1)
-            refs_err = append(refs_err, 1)
+            refs = np.append(refs, np.asarray((centerest, refx)), axis = 1)
+            refs_err = np.append(refs_err, 1)
             print 'Pipette wall 1: No subpix rez'
         else:
             a, b, x0, s = fit[0]
-            refs = append(refs, asarray((x0 + s, refx)), axis = 1)
+            refs = np.append(refs, np.asarray((x0 + s, refx)), axis = 1)
             #taking err_x0+err_s while ref = x0+s
-            refs_err = append(refs_err, sum(err[2:]))
+            refs_err = np.append(refs_err, sum(err[2:]))
         if extra:
             extra_wall['fit1'] = fit
 
         edgel2, edger2 = max_edges(y[middle:edger+1])
         shift = middle
-        centerest = shift+edgel2+argmin(y[shift+edgel2:shift+edger2+1])
+        centerest = shift+edgel2+np.argmin(y[shift+edgel2:shift+edger2+1])
         fit = fit_peak(y, centerest)
         err = fiterr(fit)
         if (fit[-1] != 1) or (err == None) or (sum(err[2:]) >= mismatch):
-            refs = append(refs, asarray((centerest, refx)), axis = 1)
-            refs_err = append(refs_err, 1)
+            refs = np.append(refs, np.asarray((centerest, refx)), axis = 1)
+            refs_err = np.append(refs_err, 1)
             print 'Pipette wall 2: No subpix rez'
         else:
             a, b, x0, s = fit[0]
-            refs = append(refs, asarray((x0 - s, refx)), axis = 1)
-            refs_err = append(refs_err, sum(err[2:]))
+            refs = np.append(refs, np.asarray((x0 - s, refx)), axis = 1)
+            refs_err = np.append(refs_err, sum(err[2:]))
         if extra:
             extra_wall['fit2'] = fit
             extra_wall['profile'] = y
@@ -214,15 +216,15 @@ def point_to_line_dist(point, point1, point2):
     b = y1-k*x1
     dist = (k*x0-y0+b)/sqrt(1+k*k)
     
-    dk = sqrt(dy1*dy1 + dy2*dy2 + k*k*(dx1*dx1+dx2*dx2) )/fabs(x2-x1)
+    dk = sqrt(dy1*dy1 + dy2*dy2 + k*k*(dx1*dx1+dx2*dx2) )/np.fabs(x2-x1)
     db = sqrt(dy1*dy1 + x1*x1*dk*dk + k*k*dx1*dx1)
     dist_err = sqrt(k*k*dx0*dx0 + dk*dk*x0*x0 + db*db + dy0*dy0 + 
                     k*k*dk*dk*(k*x0+b-y0)**2/(1+k*k))/(1+k*k)
-    return asarray((fabs(dist), dist_err))
+    return np.asarray((np.fabs(dist), dist_err))
 
 def find_edge(ar, centerest):
     '''Fits a steep change in 1D data with some suitable function'''
-    sgn = sign(ar[centerest+1] - ar[centerest-1])
+    sgn = np.sign(ar[centerest+1] - ar[centerest-1])
 
     #max and min are positions of local maximum and minimum
     #in direct vicinity of centerset
@@ -247,10 +249,10 @@ def wall_points_pix(img, refsx):
     Find reference points on the pipette for PhC image with pixel resolution
     FIXME: Is it the same for both PhC and DiC types of images???
     @param img: array representing the image
-    @param refsx: tuple of points where to make a cross-profile to fine walls of the pipette
+    @param refsx: tuple of points where to make a cross-profile to find walls of the pipette
     '''
     #FIXME: BAD - relies heavily on clipped values of brightness corresponding to pipette cross-section 
-    refs = array([])
+    refs = np.array([])
     for refx in refsx:
 #        print refx
         y = img[:, refx]
@@ -260,28 +262,65 @@ def wall_points_pix(img, refsx):
 
         edgel1, edger1 = max_edges(y[edgel:middle])
         shift = edgel
-        centerest = shift+edgel1+argmin(y[shift+edgel1:shift+edger1+1])
-        refs = append(refs, asarray(((centerest, refx),(PIX_ERR, 0))))
+        centerest = shift+edgel1+np.argmin(y[shift+edgel1:shift+edger1+1])
+        refs = np.append(refs, np.asarray(((centerest, refx),(PIX_ERR, 0))))
         
         edgel2, edger2 = max_edges(y[middle:edger+1])
         shift = middle
-        centerest = shift+edgel2+argmin(y[shift+edgel2:shift+edger2+1])
-        refs = append(refs, asarray(((centerest, refx),(PIX_ERR, 0))))
+        centerest = shift+edgel2+np.argmin(y[shift+edgel2:shift+edger2+1])
+        refs = np.append(refs, np.asarray(((centerest, refx),(PIX_ERR, 0))))
     
     return refs.reshape(-1,2,2)
 
-def wall_points_subpix(img, refs, mode):
+def wall_points_subpix(img, refsx, mode):
     return refssub, refs_err, extra_walls
 
+def split_two_peaks(ar, mode):
+    indices = np.argsort(ar)
+    if mode >= 0:
+        indices = np.flipud(indices)
+    peak1 = indices[0]
+    for pos in indices[1:]:
+        left, right = peak1, pos
+        if left > right:
+            left, right = right, left
+        if ((mode>= 0 and ar[pos] > ar[left:right+1].min()) or
+            (mode < 0 and ar[pos] < ar[left:right+1].max())):
+            peak2 = pos
+            return np.asarray((peak1, peak2))
+        
+def wall_points_pix2(img, refsx, sigma):
+    """
+    
+    @param img:
+    @param refsx:
+    """
+    N = 2  # number of walls to find
+    refs = np.array([])
+    for refx in refsx:
+        prof = img[:,refx]
+        gradprof = ndimage.gaussian_gradient_magnitude(prof, sigma)
+        start, end = split_two_peaks(gradprof, 1)
+        if start > end:
+            start, end = end, start
+        refy = split_two_peaks(prof[start:end], -1)+start
+        dref = np.asarray([PIX_ERR, 0])
+        rx = np.tile(refx,N)
+        xy = np.column_stack((refy,rx))#.flatten()
+        drefe = np.repeat(np.expand_dims(dref,0), N, 0)
+        ref = np.concatenate((xy,drefe),1)
+        refs = np.append(refs, ref)
+    return refs.reshape(-1,2,2)
+        
 def line_to_line(refs):
     '''
     Return mean distance between two (not parallel) lines
-    @param refs: 3d numpy array, each refs[i,:] is a (y,x) point.
+    @param refs: 3d numpy array, each refs[i,:] is a point with errors ((y,x),(dy,dx)).
                 first line is defined by refs[0] & refs[2], second line by refs[1] & refs[3] 
     '''
     #TODO: rewrite it in cycle, maybe rearrange refs for this
    
-    dists = empty((2,4))
+    dists = np.empty((2,4))
     
     dists[:,0] = point_to_line_dist(refs[0,:], refs[1,:], refs[3,:])
     dists[:,1] = point_to_line_dist(refs[1,:], refs[0,:], refs[2,:])
@@ -290,7 +329,7 @@ def line_to_line(refs):
     dist = dists[0].mean()
     dist_err = sqrt(sum(square(dists[1])))/4
     
-    return asarray((dist, dist_err))
+    return np.asarray((dist, dist_err))
 
 def extract_pix(profile, sigma, minaspest, mivesest, mode):
     if mode[0] == 'phc':
@@ -302,21 +341,21 @@ def extract_pix_phc(profile, sigma, minaspest, minvesest):
     #gradient of gauss-presmoothed image
     grad = ndimage.gaussian_gradient_magnitude(profile, sigma)
     # find pipette tip
-    pip = argmax(profile[minaspest:minvesest])+minaspest
+    pip = np.argmax(profile[minaspest:minvesest])+minaspest
     #aspirated vesicle edge - pixel rez
-    asp = argmax(grad[:minaspest])
+    asp = np.argmax(grad[:minaspest])
     #outer vesicle edge - pixel rez
-    ves = argmax(grad[minvesest:]) + minvesest
+    ves = np.argmax(grad[minvesest:]) + minvesest
     return pip, asp, ves
 
 def extract_pix_dic(profile, minaspest, mivesest, polar):
-    pip = argmax(profile[minaspest:minvesest])+minaspest
+    pip = np.argmax(profile[minaspest:minvesest])+minaspest
     if polar == 'right':
-        asp = argmax(profile[:minaspest])
-        ves = argmin(profile[minvesest:]) + minvesest
+        asp = np.argmax(profile[:minaspest])
+        ves = np.argmin(profile[minvesest:]) + minvesest
     elif polar == 'left':
-        asp = argmin(profile[:minaspest])
-        ves = argmax(profile[minvesest:]) + minvesest
+        asp = np.argmin(profile[:minaspest])
+        ves = np.argmax(profile[minvesest:]) + minvesest
     return pip, asp, ves
 
 def extract_subpix(profile, pip, asp, ves, mode):
@@ -360,16 +399,16 @@ def locate(**kwargs):
 
     refsx = (0, minaspest) #where to measure pipette radius
     imgN = images.shape[0] #total number of images
-    metrics = empty(imgN)
-    metrics_err = empty_like(metrics)
-    piprads = empty_like(metrics) #pipette radius
-    piprads_err = empty_like(metrics)
-    asps = empty_like(metrics) #aspirated edge
-    asps_err = empty_like(metrics)
-    pips = empty_like(metrics) # pipette tip
-    pips_err = empty_like(metrics)
-    vess = empty_like(metrics) # outer vesicle edge
-    vess_err = empty_like(metrics)
+    metrics = np.empty(imgN)
+    metrics_err = np.empty_like(metrics)
+    piprads = np.empty_like(metrics) #pipette radius
+    piprads_err = np.empty_like(metrics)
+    asps = np.empty_like(metrics) #aspirated edge
+    asps_err = np.empty_like(metrics)
+    pips = np.empty_like(metrics) # pipette tip
+    pips_err = np.empty_like(metrics)
+    vess = np.empty_like(metrics) # outer vesicle edge
+    vess_err = np.empty_like(metrics)
     results = [metrics, metrics_err, piprads, piprads_err, asps, asps_err, pips, pips_err, vess, vess_err]
     extra_out = [] # list of extra outputs to return
 
@@ -378,7 +417,7 @@ def locate(**kwargs):
 #        print "Using Image %02i"%(imgindex+1)
 
         #reference points on pipette walls (with respective errors)
-        refs = wall_points_pix(img, refsx)
+        refs = wall_points_pix2(img, refsx, sigma)
         if subpix:
             refs, refs_err, extra_walls = wall_points_subpix(img, refs, mode)
         #pipette radius
@@ -398,7 +437,7 @@ def locate(**kwargs):
                 extra_img = {}
                 extra_img['refs'] = refs
                 extra_img['walls'] = extra_walls
-                extra_img['piprad'] = asarray((piprad, pix_err))
+                extra_img['piprad'] = np.asarray((piprad, pix_err))
                 extra_img['profile'] = profile
                 extra_img['pip'] = pip
                 extra_img['pipfit'] = pipfit
@@ -408,13 +447,13 @@ def locate(**kwargs):
                 extra_img['vesfit'] = vesfit
                 extra_out.append(extra_img)
             # use subpix only if it is within mismatch from pix
-            if pipfit[-1] == 1 and fabs(pip - pipfit[0][2]) < mismatch:
+            if pipfit[-1] == 1 and np.fabs(pip - pipfit[0][2]) < mismatch:
                 pip = pipfit[0][2]
                 pip_err = fit_err(pipfit)[2]
-            if aspfit[-1] == 1 and fabs(asp - aspfit[0][2]) < mismatch:
+            if aspfit[-1] == 1 and np.fabs(asp - aspfit[0][2]) < mismatch:
                 asp = aspfit[0][2]
                 asp_err = fit_err(aspfit)[2]
-            if vesfit[-1] == 1 and fabs(ves - vesfit[0][2]) < mismatch:
+            if vesfit[-1] == 1 and np.fabs(ves - vesfit[0][2]) < mismatch:
                 ves = vesfit[0][2]
                 ves_err = fit_err(vesfit)[2]
         #populate arrays with results
@@ -424,11 +463,11 @@ def locate(**kwargs):
         
     # making dictionary outputs, so that to care of names and not the position 
     out = {}
-    out['metrics'] = asarray((metrics, metrics_err))
-    out['piprads'] = asarray((piprads, piprads_err))
-    out['pips'] = asarray((pips, pips_err))
-    out['vess'] = asarray((vess, vess_err))
-    out['asps'] = asarray((asps, asps_err))
+    out['metrics'] = np.asarray((metrics, metrics_err))
+    out['piprads'] = np.asarray((piprads, piprads_err))
+    out['pips'] = np.asarray((pips, pips_err))
+    out['vess'] = np.asarray((vess, vess_err))
+    out['asps'] = np.asarray((asps, asps_err))
     return out, extra_out
 
 if __name__ == '__main__':

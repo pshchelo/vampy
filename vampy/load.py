@@ -2,7 +2,7 @@
 """
 loading of various data for VAMP project
 """
-from scipy import asarray, empty, rollaxis, rot90
+import numpy as np
 ### for loading images to numpy arrays with PIL
 from scipy import misc
 
@@ -21,8 +21,8 @@ def read_grey_image(filename):
         mesg = "Error: file %s is not greyscale!"%filename
         return None, mesg
     ### check if the image was more than 8-bit - scipy/PIL has a bug on it
-    if img.dtype == int32:
-        img = asrray(asfarray(img), int32)
+    if img.dtype == np.int32:
+        img = np.asarray(np.asfarray(img), np.int32)
     return img, mesg
 
 def read_images(filenames):
@@ -38,7 +38,7 @@ def read_images(filenames):
     test, mesg = read_grey_image(filenames[0])
     if mesg:
         return None, mesg
-    images = empty((len(filenames), test.shape[0], test.shape[1]), test.dtype)
+    images = np.empty((len(filenames), test.shape[0], test.shape[1]), test.dtype)
     for index, filename in enumerate(filenames):
         ### open the image file
         img, mesg = read_grey_image(filename)
@@ -62,14 +62,14 @@ def preproc_images(images, orientation, crop):
     images = images[:,crop['top']:crop['bottom'], crop['left']:crop['right']]
     
     ### rotate according to orientation flag
-    rolled = rollaxis(rollaxis(images, 1), 2, 1)  # make first axis last
+    rolled = np.rollaxis(np.rollaxis(images, 1), 2, 1)  # make first axis last
     if orientation == 'right':
-        rolled = rot90(rolled, 2)  # rot90 rotates only 2 first axes
+        rolled = np.rot90(rolled, 2)  # rot90 rotates only 2 first axes
     if orientation == 'top':
-        rolled = rot90(rolled, 1)
+        rolled = np.rot90(rolled, 1)
     elif orientation == 'bottom':
-        rolled = rot90(rolled, 3)
-    return rollaxis(rolled, 2)  # bring the original first axis back from last
+        rolled = np.rot90(rolled, 3)
+    return np.rollaxis(rolled, 2)  # bring the original first axis back from last
 
 def read_pressures(filename, stage):
     """
@@ -88,5 +88,5 @@ def read_pressures(filename, stage):
         except(ValueError):
             return None
         pressures.append(pressure)
-    return asarray(pressures)
+    return np.asarray(pressures)
     

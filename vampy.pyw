@@ -11,7 +11,7 @@ OWNPATH = sys.path[0]
 
 import wx
 
-from scipy import pi, log
+from numpy import pi, log
 import matplotlib as mplt
 mplt.use('WXAgg')
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas

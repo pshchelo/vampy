@@ -5,23 +5,19 @@ command-line interface to VAMP project
 import sys  # for system level operations
 import glob  # for file searchng
 
-#import vampy.features
-#import vampy.analysis
-#import vampy.load
-#import vampy.output
-
 from vampy import analysis, features, load, output_cli
 from cliutils import *
+SIDES = ('left', 'right', 'top', 'bottom')
 
 def get_input(defaults):
     '''Get inputs for extract_features procedure.'''
     arg_dict = {}
-    sides = ('left', 'right', 'top', 'bottom')
     crop = {}
     if defaults:
         folder = 'img-phc'
         fileext = 'tif'
-        crop = {'left':80, 'right':150, 'top':150, 'bottom':80}
+        crops = [80, 150, 150, 80]
+        crop = dict(zip(SIDES, crop))
         orientation = 'left'
         
         arg_dict['mode'] = 'phc', 'left'
@@ -41,7 +37,7 @@ def get_input(defaults):
         fileext = ask_string('File ext to load?', 'tif')
 
         ### image croppings
-        for side in sides:
+        for side in SIDES:
             mesg = 'Cropping for %s side?'%side
             crop[side] = ask_int(mesg, 0)
 
