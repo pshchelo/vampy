@@ -25,10 +25,13 @@ def averageImages(aver, **kwargs):
 def get_geometry(**kwargs):
     '''Calculate geometry of the system based on extracted features'''
     metrics, metrics_err = kwargs['metrics']
-    piprad, piprad_err = kwargs['piprads']  # since piprad is measured directly, no scaling with metric is needed
+    piprads, piprads_err = kwargs['piprads']  # since piprad is measured directly, no scaling with metric is needed
     pips, pips_err = kwargs['pips']
     asps, asps_err = kwargs['asps']
     vess, vess_err = kwargs['vess']
+
+    piprad = piprads.mean()
+    piprad_err = sqrt(square(piprads_err).sum())/len(piprads_err)
 
     aspl = (pips - asps) * metrics
     aspl_err = sqrt((pips_err**2 + asps_err**2) * metrics**2 + (pips - asps)**2 * metrics_err**2)
@@ -83,7 +86,7 @@ def get_geometry(**kwargs):
     results['vesrad'] = np.asarray((vesrad,vesrad_err))
     results['area'] = np.asarray((area,area_err))
     results['volume'] = np.asarray((volume,volume_err))
-    results['piprad'] = kwargs['piprads']
+    results['piprad'] = np.asarray((piprad,piprad_err))
     return results, None
 
 ### model for tension
@@ -93,15 +96,17 @@ def tension_evans(P, dP, scale, **kwargs):
     @param pressures: pressure values corresponding to images, as numpy array
     @param scale: physical scale of the image (um/pixel)
     """
-    piprad, piprad_err = kwargs['piprad']
     A, dA = kwargs['area']
     Rv, dRv = kwargs['vesrad']
-    Rp = piprad.mean()
-    dRp = sqrt(square(piprad_err).sum())/len(piprad_err)
+#    piprad, piprad_err = kwargs['piprad']
+    Rp, dRp = kwargs['piprad']
+#    print 'Pipette radius: %f +- %f'%(Rp,dRp)
+#    Rp = piprad.mean()
+#    dRp = sqrt(square(piprad_err).sum())/len(piprad_err)
     ### the simplest model for tensions from Evans1987
     tau = 0.5*P/(1/Rp-1/Rv)*scale
     tau_err = sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
-#    tau_err[0]=0.5*dP/(1/Rp-1/Rv[0])*scale # could be avoided if he above line is written without 1/P
+#    tau_err[0]=0.5*dP/(1/Rp-1/Rv[0])*scale # could be avoided if the above line is written without 1/P
     
     alpha = (A-A[0])/A[0]
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
