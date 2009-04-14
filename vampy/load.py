@@ -82,11 +82,13 @@ def read_pressures(filename, stage):
     presfile.close()
     pressures = []
     for line in lines:
-        elements = line.split()
-        try:
-            pressure = float(elements[stage])
-        except(ValueError):
-            return None
-        pressures.append(pressure)
+        if line[0] != '#':
+            elements = line.split()
+            try:
+                pressure = float(elements[stage])
+            except(ValueError):
+                print 'Wrong file format!'
+                return None
+            pressures.append(pressure)
     return np.asarray(pressures)
     
