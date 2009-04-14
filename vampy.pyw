@@ -26,7 +26,7 @@ from myutils.mywx import NumValidator, rgba_wx2mplt
 from myutils.base64icons import GetIconBundle
 
 SIDES = ['left','right','top','bottom']
-DEFAULT_SCALE = '0.3225'  # Teli CS3960DCL, 20x objective
+DEFAULT_SCALE = '0.3225'  # micrometer/pixel, Teli CS3960DCL, 20x objective
 DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
 
 class VampyMenuBar(wx.MenuBar):
@@ -310,7 +310,7 @@ class VampyFrame(wx.Frame):
         if dirDlg.ShowModal() != wx.ID_OK:
             dirDlg.Destroy()
             return
-        folder = dirDlg.GetPath()
+        self.folder = dirDlg.GetPath()
         dirDlg.Destroy()
         #TODO: add choice of file extension, tif or png
         extensions = ['png','tif']
@@ -321,7 +321,7 @@ class VampyFrame(wx.Frame):
         fileext = extDlg.GetStringSelection()
         extDlg.Destroy()
         
-        filenames = glob.glob(folder+'/*.'+fileext)
+        filenames = glob.glob(self.folder+'/*.'+fileext)
         if len(filenames) == 0:
             msg = "No such files in the selected folder!"
             self.OnError(msg)
@@ -401,7 +401,7 @@ class VampyFrame(wx.Frame):
         
     def GetExtraUserData(self):
         fileDlg = wx.FileDialog(self, message="Choose a pressure protocol file",
-                                defaultDir = OWNPATH, style = wx.OPEN,
+                                defaultDir = self.folder, style = wx.OPEN,
                                 wildcard = "Data files (TXT, CSV, DAT)|*.txt;*.TXT;*.csv;*.CSV;*.dat;*.DAT | All files (*.*)|*.*")
         if fileDlg.ShowModal() != wx.ID_OK:
             fileDlg.Destroy()
@@ -490,8 +490,11 @@ class VampyTensionsFrame(wx.Frame):
         self.axes = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(panel, -1, self.figure)
         pansizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
-        
-        self.Slider = wx.Slider(panel, -1, 1, 1, len(self.tau))
+        if self.tau[0] == 0:
+            slider = 1
+        else:
+            slider = 0
+        self.Slider = wx.Slider(panel, -1, slider, 0, len(self.tau))
         self.Bind(wx.EVT_SCROLL, self.OnSlide, self.Slider)        
         pansizer.Add(self.Slider, 0, wx.GROW)
         panel.SetSizer(pansizer)
@@ -510,6 +513,8 @@ class VampyTensionsFrame(wx.Frame):
 
         x = self.tau[slider:]
         y = self.alpha[slider:]
+        sx = self.tau_err[slider:]
+        sy = self.alpha_err[slider:]
         self.axes.plot(self.tau, self.alpha, 'ro', label = 'Measured')
         
 #        x_b, y_b, sx_b, sy_b = self.tau[1:slider], self.alpha[1:slider], self.tau_err[1:slider], self.alpha_err[1:slider]
@@ -519,20 +524,27 @@ class VampyTensionsFrame(wx.Frame):
 #
 #        self.axes.plot(x_b, vanalys.dilation_bend_evans(x_b, slope_b, interc_b), label = 'Fit low-P')
 #        self.axes.plot(x_e, vanalys.dilation_elas_evans(x_e, slope_e, interc_e), label = 'Fit high-P')
-#        
+        
 #        self.axes.axvline(self.tau[slider])
 
-        fit, fit_sd, mesg, success = vfit.nls_Fournier(x, y)
+#        fit, fit_sd, mesg, success = vfit.nls_Fournier(x, y)
+        fit = vfit.odrlinlog(x, y, sx, sy)
+        bend, intercept = fit.beta
         
+        bend_sd, intercept_sd = fit.sd_beta
+        success = 1
         if success != 1:
             title = 'Fit Error: %s'%mesg
         else:
-            a0_T, bend, elas = fit
+#            a0_T, bend, elas = fit
 #            bend_sd, a0_T_sd, elas_sd = fit_sd
 #            title = 'kappa = %f +- %f kT; K = %f +- %f mN/m'%(bend, bend_sd, elas/1000., elas_sd/1000.)
-            title = 'kappa = %f kT; K = %f mN/m'%(bend, elas/1000.)
-            f = vfit.alpha_Fournier()
-            self.axes.plot(x, f(fit, x), label = 'Fournier fit')
+#            title = 'kappa = %f kT; K = %f mN/m'%(bend, elas/1000.)
+#            f = vfit.alpha_Fournier()
+#            self.axes.plot(x, f(fit, x), label = 'Fournier fit')
+            title = 'kappa = %f +- %f kT'%(1/(8*pi*bend), bend_sd/(8*pi*bend))
+            f = vanalys.dilation_bend_evans
+            self.axes.plot(x, f(x, bend, intercept), label = 'Evans fit')
         self.axes.set_title(title)
         self.axes.legend()
         self.canvas.draw()
@@ -545,23 +557,27 @@ class VampyGeometryFrame(wx.Frame):
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
         pansizer.Add(self.canvas, 1, wx.GROW)
-        area, area_err = kwargs['area']
-        x = xrange(1, len(area)+1)
         
-        self.areaplot = self.figure.add_subplot(221, title = 'Area')
-        self.areaplot.errorbar(x, area, area_err, fmt='bo-', label='Area')
+        aspl, aspl_err = kwargs['aspl']
+        x = xrange(1, len(aspl)+1)
+        self.asplplot = self.figure.add_subplot(221, title = 'Aspirated Length')
+        self.asplplot.errorbar(x, aspl, aspl_err, fmt='bo-', label='Aspirated Length')
         
-        self.volumeplot = self.figure.add_subplot(222, title = 'Volume')
-        volume, volume_err = kwargs['volume']
-        self.volumeplot.errorbar(x, volume, volume_err, fmt='bo-',  label='Volume')
-        
-        self.vesradplot = self.figure.add_subplot(223, title = 'Vesicle Radius')
+        self.vesradplot = self.figure.add_subplot(222, title = 'Vesicle Radius')
         vesrad, vesrad_err = kwargs['vesrad']
         self.vesradplot.errorbar(x, vesrad, vesrad_err, fmt='bo-', label='Vesicle Radius')
         
-        self.asplplot = self.figure.add_subplot(224, title = 'Aspirated Length')
-        aspl, aspl_err = kwargs['aspl']
-        self.asplplot.errorbar(x, aspl, aspl_err, fmt='bo-', label='Aspirated Length')
+        self.areaplot = self.figure.add_subplot(223, title = 'Area')
+        area, area_err = kwargs['area']
+        self.areaplot.errorbar(x, area, area_err, fmt='bo-', label='Area')
+        
+#        self.volumeplot = self.figure.add_subplot(224, title = 'Volume')
+#        volume, volume_err = kwargs['volume']
+#        self.volumeplot.errorbar(x, volume, volume_err, fmt='bo-',  label='Volume')
+        
+        self.veslplot = self.figure.add_subplot(224, title = 'Outer Radius')
+        vesl, vesl_err = kwargs['vesl']
+        self.veslplot.errorbar(x, vesl, vesl_err, fmt='bo-',  label='Outer Radius')
         
         self.SetIcons(GetIconBundle('wxblockslogoset'))
 #        sizer.Add(panel, 1, wx.GROW)
