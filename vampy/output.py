@@ -6,6 +6,19 @@ output of various data for VAMP project
 import pylab
 from numpy import linspace, log, pi
 
+FITS_IMPLEMENTED = {'bend and elast':plot_fit_full, 
+        'bend':plot_fit_bend, 
+        'elast':plot_fit_elast, 
+        'bend or elast':plot_fit_sep}
+
+def plot_fit_full():
+    pass
+def plot_fit_bend():
+    pass
+def plot_fit_elast():
+    pass
+def plot_fit_sep():
+    pass
 def file_output(folder, piprad, **kwargs):
     ''''''
     header = "#Images from folder %s\n"%folder

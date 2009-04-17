@@ -482,14 +482,17 @@ class VampyOtherUserDataDialog(wx.Dialog):
 class VampyTensionsFrame(wx.Frame):
     def __init__(self, parent, id, tensiondata):
         wx.Frame.__init__(self, parent, id, title = 'Dilation vs Tension')
-        panel = wx.Panel(self, -1)
         self.tau, self.tau_err = tensiondata['tension']
         self.alpha, self.alpha_err = tensiondata['dilation']
+        
+        panel = wx.Panel(self, -1)
         pansizer = wx.BoxSizer(wx.VERTICAL)
+        
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
         self.axes = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(panel, -1, self.figure)
         pansizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
+        
         if self.tau[0] == 0:
             slider = 1
         else:
@@ -497,6 +500,10 @@ class VampyTensionsFrame(wx.Frame):
         self.Slider = wx.Slider(panel, -1, slider, 0, len(self.tau))
         self.Bind(wx.EVT_SCROLL, self.OnSlide, self.Slider)        
         pansizer.Add(self.Slider, 0, wx.GROW)
+        
+        fitpanel = wx.Panel(self, -1)
+#        fitchoice = wx.Cho
+        
         panel.SetSizer(pansizer)
         panel.Fit()
         self.SetIcons(GetIconBundle('wxblockslogoset'))
