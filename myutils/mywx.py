@@ -27,33 +27,90 @@ def rgba_wx2mplt(wxcolour):
 
 class MinMaxSliders(wx.Panel):
     '''
-    Provides a panel 
+    Provides a panel with two sliders to visually set 2 values (i.e. minimum and maximum, limits etc)
+    TODO: implement all missing  methods of wx.Slider
+    TODO: make styles work as with normal slider, but also some panel styling would be great
     '''
-    def __init__(self, parent, id, gap, slideMethod, title=None, min=1, max=100, showTitle=False, **panelargs):
-        wx.Panel.__init__(self, parent, id, title, **panelargs)
-        self.slide = slideMethod
+    def __init__(self, parent, id, value = (1,100), min=1, max=100, gap = 0, name=None):
+        wx.Panel.__init__(self, parent, id)
         self.gap = gap
-        self.minslider = wx.Slider(self, -1, min, min, max)
-        self.maxslider = wx.Slider(self, -1, min, min, max, style = wx.SL_INVERSE)
-        if title and showTitle:
-            slidtitle = wx.StaticText()
+        minDefault, maxDefault = value
+        self.minslider = wx.Slider(self, -1, minDefault, min, max)
+        self.maxslider = wx.Slider(self, -1, maxDefault, min, max)
+        self.Bind(wx.EVT_SLIDER, self.OnSlideMin, self.minslider)
+        self.Bind(wx.EVT_SLIDER, self.OnSlideMax, self.maxslider)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.minslider, wx.GROW)
+        sizer.Add(self.maxslider, wx.GROW)
+        self.SetSizer(sizer)
+
+    def SetValue(self, value):
+        min, max = value
+        self.minslider.SetValue(min)
+        self.maxslider.SetValue(max)
+    def GetValue(self):
+        return self.minslider.GetValue(), self.maxslider.GetValue()
         
     def SetMin(self, min):
-        self.minslider.SetValue(min)
-    def SetMax(self, max):
-        self.maxslider.SetValue(max)
-    def SetValues(self, min, max):
-        self.SetMin(min)
-        self.SetMax(max)
+        self.minslider.SetMin(min)
+        self.maxslider.SetMin(min)
     def GetMin(self):
-        self.minslider.GetValue()
-    def GetMax(self):
-        self.maxslider.GetValue()
-    def GetValues(self):
-        return self.GetMin(), self.GetMax()
-    def OnSlide(self):
+        minmin = self.minslider.GetMin()
+        minmax = self.maxslider.GetMin()
+        if minmin != minmax:
+            raise AssertionError
+        else:
+            return minmin
         
-        self.slide()
+    def SetMax(self, max):
+        self.minslider.SetMax(max)
+        self.maxslider.SetMax(max)
+    def GetMax(self):
+        maxmin = self.minslider.GetMax()
+        maxmax = self.maxslider.GetMax()
+        if maxmin != maxmax:
+            raise AssertionError
+        else:
+            return maxmax
+    def SetRange(self, range):
+        self.minslider.SetRange(range)
+        self.maxslider.SetRange(range)
+    def GetRange(self):
+        rangemin = self.minslider.GetRange()
+        rangemax = self.maxslider.GetRange()
+        if rangemin != rangemax:
+            raise AssertionError
+        else:
+            return rangemax
+        
+    def OnSlideMin(self, evt):
+        min, max = self.GetValue()
+        rangemin, rangemax = self.GetRange()
+        if min > rangemax-self.gap:
+            value = rangemax-self.gap, rangemax
+            self.SetValue(value)
+            evt.Skip()
+            return
+        if min > max-self.gap:
+            value = min, min+self.gap
+            self.SetValue(value)
+            evt.Skip()
+            return
+        evt.Skip()
+    def OnSlideMax(self, evt):
+        min, max = self.GetValue()
+        rangemin, rangemax = self.GetRange()
+        if max < rangemin+self.gap:
+            value = rangemin, rangemin+self.gap
+            self.SetValue(value)
+            evt.Skip()
+            return
+        if max < min-self.gap:
+            value = max-self.gap, max
+            self.SetValue(value)
+            evt.Skip()
+            return
+        evt.Skip()
         
 class NumValidator(wx.PyValidator):
     """
