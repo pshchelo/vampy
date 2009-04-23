@@ -7,11 +7,10 @@ probably with the toolbar and status bar
 """
 import glob, sys, os
 OWNPATH = sys.path[0]
-#import re
 
 import wx
 
-from numpy import pi, log
+from numpy import pi, log, empty
 import matplotlib as mplt
 mplt.use('WXAgg')
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -29,6 +28,7 @@ from myutils.base64icons import GetIconBundle
 SIDES = ['left','right','top','bottom']
 DEFAULT_SCALE = '0.3225'  # micrometer/pixel, Teli CS3960DCL, 20x objective
 DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
+CROP_CFG_FILENAME = 'vampy-crop.cfg'
 
 class VampyMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
@@ -135,7 +135,7 @@ class VampyPreprocessPanel(wx.Panel):
         for key in crops.keys():
             lines.append('%s\t%i\n'%(key, crops[key]))
         try:
-            conffile = open('vampy-crop.cfg', 'w')
+            conffile = open(CROP_CFG_FILENAME, 'w')
         except IOError:
             wx.MessageBox('An error occurred while saving crop info', 'Error')
             evt.Skip()
@@ -366,7 +366,7 @@ class VampyFrame(wx.Frame):
             self.OnOpenFolder(evt)
         else:
             filenames.sort()
-            self.OpenedImgs, imgcfg, msg = vload.read_images(filenames)
+            self.OpenedImgs, imgcfg, msg = self.LoadImages(filenames)
             if msg:
                 self.OnError(msg)
                 self.OnOpenFolder(evt)
@@ -377,6 +377,33 @@ class VampyFrame(wx.Frame):
                 self.imgpanel.Initialize()
                 self.Preprocess(evt)
     
+    def LoadImages(self, filenames):
+        imgcfgfilename = os.path.join(self.folder, CROP_CFG_FILENAME)
+        imgcfg = vload.read_conf_file(imgcfgfilename)
+        test, mesg = vload.read_grey_image(filenames[0])
+        if mesg:
+            return None, imgcfg, mesg
+        images = empty((len(filenames), test.shape[0], test.shape[1]), test.dtype)
+        progressdlg = wx.ProgressDialog('Loading images','Loading images',len(filenames),
+                                        style = wx.PD_AUTO_HIDE|wx.PD_CAN_ABORT|wx.PD_REMAINING_TIME)
+        keepLoading = True
+        for index, filename in enumerate(filenames):
+            ### open the image file
+            keepLoading = progressdlg.Update(index+1)
+            if not keepLoading:
+                mesg = 'Progress cancelled! Not all images have been loaded.'
+                break
+            img, mesg = vload.read_grey_image(filename)
+            if mesg:
+                return None, imgcfg, mesg
+            ### test that the image has the same shape as others
+            if img.shape != test.shape:
+                mesg = 'Error: Images have different dimensions!'
+                return None, imgcfg, mesg
+            images[index, :] = img
+        progressdlg.Destroy()
+        return images, imgcfg, mesg
+        
     def OnError(self, msg):
         """
         Display an error dialog
