@@ -5,20 +5,33 @@ output of various data for VAMP project
 ### for plotting
 import pylab
 from numpy import linspace, log, pi
+import fitting as vfit
+
+def plot_fit_full():
+    return fitfunc, fit, title
+
+def plot_fit_bend(tau, alpha, sd_tau, sd_alpha):
+    fit_out = vfit.odrlinlog(tau, alpha, sd_tau, sd_alpha)
+    fit_params = fit_out.beta
+    fitx = linspace(tau.min, tau.max)
+    fity = fitfunc(fit_params, fitx)
+    fit_params[0] = 1/(8*pi*fit_params[0])
+    fit_sd = fit_out.sd_beta
+    fit_sd[0] = fit_sd[0]/(8*pi*fit_params[0]*fit_params[0])
+    title = 'Kappa = %f+-%f KbT'%(fit_params[0], fit_sd[0])
+    return fitx, fity, fit_params, fit_sd, title
+
+def plot_fit_elast():
+    return fitfunc, fit, title
+
+def plot_fit_sep():
+    return fitfunc, fit, title
 
 FITS_IMPLEMENTED = {'bend and elast':plot_fit_full, 
         'bend':plot_fit_bend, 
         'elast':plot_fit_elast, 
         'bend or elast':plot_fit_sep}
 
-def plot_fit_full():
-    pass
-def plot_fit_bend():
-    pass
-def plot_fit_elast():
-    pass
-def plot_fit_sep():
-    pass
 def file_output(folder, piprad, **kwargs):
     ''''''
     header = "#Images from folder %s\n"%folder
