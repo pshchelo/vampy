@@ -49,8 +49,27 @@ def read_images(filenames):
             mesg = 'Error: Images have different dimensions!'
             return None, mesg
         images[index, :] = img
-    return images, mesg
+    imgcfg = read_conf_file()
+    return images, imgcfg, mesg
 
+def read_conf_file():
+    imgcfg = {}
+    for side in SIDES:
+        imgcfg[side]=0
+    try:
+        conffile = open('vampy-crop.cfg', 'r')
+    except IOError:
+        return imgcfg
+    lines = conffile.readlines()
+    conffile.close()
+    for line in lines:
+        items = line.split()
+        if items[0] in SIDES:
+            imgcfg[items[0]] = items[1]
+    return imgcfg 
+            
+            
+    return conf
 def preproc_images(images, orientation, crop):
     '''prepocess images
     orientations - member of SIDES
