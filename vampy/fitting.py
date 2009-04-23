@@ -68,6 +68,27 @@ def odrlinlog(x,y,sx,sy):
     slogx = sx/x
     return odrlin(logx, y, slogx, sy)
 
+def alpha_bend():
+    f = lambda p,x: (log(x)+p[1])/(8*pi*p[0])
+    return f
+
+def alpha_elas():
+    f = lambda p,x: x/p[0]+p[1]
+    return f
+
+def alpha_Fournier():
+    f = lambda p,x: p[0] + 1/(8*pi*p[1])*log(x)+x/p[2]
+    return f
+
+def nls_Fournier(t, alpha):
+    f = alpha_Fournier()
+    pinit = [0,20,200]
+    Fournier_fit = fitcurve(f, t, alpha, pinit)
+    return Fournier_fit.fit()
+
+def odr_Fournier(t, alpha, dt, dalpha):
+    pass
+
 def alpha_Rawitz(flag):
     if flag == 'sphere':
         coeff = 1/24/pi
@@ -88,19 +109,6 @@ def nls_Rawitz(t, alpha, flag):
     Rawitz_fit = fitcurve(f, t, alpha, pinit)
     return Rawitz_fit.fit()
 
-def alpha_Fournier():
-    f = lambda p,x: p[0] + 1/(8*pi*p[1])*log(x)+x/p[2]
-    return f
-
-def nls_Fournier(t, alpha):
-    f = alpha_Fournier()
-    pinit = [0,20,200]
-    Fournier_fit = fitcurve(f, t, alpha, pinit)
-    return Fournier_fit.fit()
-
-def odr_Fournier(t, alpha, dt, dalpha):
-    pass
-
 def linregr(x,y):
     """
     Linear regression made with stats.linregress
@@ -112,7 +120,6 @@ def linregr(x,y):
     sx2 = ((x-mx)**2).sum()
     sd_intercept = see * sqrt((x*x).sum()/sx2/len(x))
     sd_slope = see/sqrt(sx2)
-    #FIXME: check this by comparing with something else (Origin?)
     return slope, sd_slope, intercept, sd_intercept
 
 def fit_nlsLinear(x, y):
