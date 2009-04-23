@@ -25,39 +25,12 @@ def read_grey_image(filename):
         img = np.asarray(np.asfarray(img), np.int32)
     return img, mesg
 
-def read_images(filenames):
-    '''Reads images to numpy array
-    Arguments:
-    filenames - list of filenames to load
-
-    Output:
-    returnes 2-tuple of 3d numpy array
-    corresponding to list of images (None in case of errors)
-    and an error message if there were errors (None if success).
-    '''
-    test, mesg = read_grey_image(filenames[0])
-    if mesg:
-        return None, mesg
-    images = np.empty((len(filenames), test.shape[0], test.shape[1]), test.dtype)
-    for index, filename in enumerate(filenames):
-        ### open the image file
-        img, mesg = read_grey_image(filename)
-        if mesg:
-            return None, mesg
-        ### test that the image has the same shape as others
-        if img.shape != test.shape:
-            mesg = 'Error: Images have different dimensions!'
-            return None, mesg
-        images[index, :] = img
-    imgcfg = read_conf_file()
-    return images, imgcfg, mesg
-
-def read_conf_file():
+def read_conf_file(filename):
     imgcfg = {}
     for side in SIDES:
         imgcfg[side]=0
     try:
-        conffile = open('vampy-crop.cfg', 'r')
+        conffile = open(filename, 'r')
     except IOError:
         return imgcfg
     lines = conffile.readlines()
@@ -67,9 +40,7 @@ def read_conf_file():
         if items[0] in SIDES:
             imgcfg[items[0]] = items[1]
     return imgcfg 
-            
-            
-    return conf
+
 def preproc_images(images, orientation, crop):
     '''prepocess images
     orientations - member of SIDES
