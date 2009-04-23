@@ -21,6 +21,7 @@ import vampy.load as vload
 import vampy.features as vfeat
 import vampy.analysis as vanalys
 import vampy.fitting as vfit
+import vampy.output as vout
 
 from myutils.mywx import NumValidator, rgba_wx2mplt
 from myutils.base64icons import GetIconBundle
@@ -44,7 +45,9 @@ class VampyMenuBar(wx.MenuBar):
                 ("&Exit", "Exit application", parent.OnExit)]],
                 ["&Help", [
                 ("&Help", "Display help", parent.OnHelp),
-                ("&About...", "Show info about application", parent.OnAbout)]]]
+                ("&About...", "Show info about application", parent.OnAbout)]],
+                ["Debug", [
+                ("Reload modules", "Reload ", parent.OnReload)]]]
 
     def createMenu(self, menuData, parent):
         menu = wx.Menu()
@@ -70,34 +73,52 @@ class VampyPreprocessPanel(wx.Panel):
     '''Sets parameters to preprocess images'''
     def __init__(self, parent, preprocessor):
         wx.Panel.__init__(self, parent, -1)
-        sizer = wx.FlexGridSizer(5,2, 5,5)
-
-        for side in SIDES:
+        Nsides = len(SIDES)
+        sizer = wx.GridBagSizer()
+        
+        for index,side in enumerate(SIDES):
             title = wx.StaticText(self, -1, side+'crop:')
             cropping = wx.TextCtrl(self, -1, '0', 
                                     style = wx.TE_PROCESS_ENTER,
                                     name = side+'crop', validator = NumValidator('int', min=0))
             self.Bind(wx.EVT_TEXT_ENTER, preprocessor, cropping)
-            sizer.Add(title, 0, 0)
-            sizer.Add(cropping, 0, 0)
-            
+            sizer.Add(title, (index,0), (1,1), wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+            sizer.Add(cropping,(index,1),(1,1), wx.ALIGN_LEFT|wx.GROW)
+        
+        savebtn = wx.Button(self, -1, 'Save crop info')
+        self.Bind(wx.EVT_BUTTON, self.OnSave, savebtn)
+        sizer.Add(savebtn, (Nsides,0), (1,2), wx.GROW|wx.ALIGN_CENTER_HORIZONTAL)
+        
         title = wx.StaticText(self, -1, 'Orientation:')
-        sizer.Add(title, 0, 0)
-        orient = wx.Choice(self,-1, choices=SIDES, size = (90,25), 
-                            name = 'orient')
+        sizer.Add(title, (Nsides+1,0), (1,1), wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        orient = wx.Choice(self,-1, choices=SIDES, name = 'orient')
         orient.SetSelection (0)
         self.Bind(wx.EVT_CHOICE, preprocessor, orient)
-        sizer.Add(orient, 0, 0)
+        sizer.Add(orient, (Nsides+1,1),(1,1), wx.ALIGN_LEFT|wx.GROW)
+        
         self.SetSizer(sizer)
         for child in self.GetChildren():
             child.Enable(False)
     
-    def Initialize(self):
+    def Initialize(self, imgcfg):
         for child in self.GetChildren():
             child.Enable(True)
+        for side in SIDES:
+            cropctrl = wx.FindWindowByName(side+'crop')
+            cropctrl.SetValue(str(imgcfg[side]))
     
     def GetOrient(self):
         return wx.FindWindowByName('orient').GetStringSelection()
+#    def SetOrient(self, orient):
+#        ctrl = wx.FindWindowByName('orient')
+#        if orient in SIDES:
+#            
+#            ctrl
+#            return
+#        else:
+#            mesg = 'Orientation is not valid'
+#            wx.MessageDialog(None, mesg, 'Error', wx.OK | wx.ICON_ERROR).ShowModal()
+#            return
     
     def GetCrop(self):
         crops = {}
@@ -106,6 +127,23 @@ class VampyPreprocessPanel(wx.Panel):
             crop = ctrl.GetValue()
             crops[side] = int(crop)
         return crops
+    
+    def OnSave(self, evt):
+        crops = self.GetCrop()
+        orient = self.GetOrient()
+        lines = []
+        for key in crops.keys():
+            lines.append('%s\t%i\n'%(key, crops[key]))
+        try:
+            conffile = open('vampy-crop.cfg', 'w')
+        except IOError:
+            wx.MessageBox('An error occurred while saving crop info', 'Error')
+            evt.Skip()
+            return    
+        conffile.writelines(lines)
+        conffile.close()
+        wx.MessageBox('Crop info saved', 'Info')
+        evt.Skip()
 
 class VampyProcessPanel(wx.Panel):
     """Shows other parameters needed for starting processing of images."""
@@ -228,7 +266,7 @@ class VampyImagePanel(wx.Panel):
             slider.SetRange(0,self.Imgs.shape[2])
     
     def Initialize(self):
-        '''Draw the first image and initialize sliders'''
+        '''Draw the first image and initialise sliders'''
         for child in self.GetChildren():
             child.Enable(True)
         self.ImgNoSlider.SetRange(1, len(self.Imgs))
@@ -276,7 +314,6 @@ class VampyFrame(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title)
         
-        self.OpenedImgs = None
         self.menubar = VampyMenuBar(self)
         self.SetMenuBar(self.menubar)
         
@@ -312,7 +349,8 @@ class VampyFrame(wx.Frame):
             return
         self.folder = dirDlg.GetPath()
         dirDlg.Destroy()
-        #TODO: add choice of file extension, tif or png
+        
+        os.chdir(self.folder)
         extensions = ['png','tif']
         extDlg = wx.SingleChoiceDialog(self, 'Choose image file type', 'File type', extensions)
         if extDlg.ShowModal() != wx.ID_OK:
@@ -328,15 +366,16 @@ class VampyFrame(wx.Frame):
             self.OnOpenFolder(evt)
         else:
             filenames.sort()
-            self.OpenedImgs, msg = vload.read_images(filenames)
+            self.OpenedImgs, imgcfg, msg = vload.read_images(filenames)
             if msg:
                 self.OnError(msg)
                 self.OnOpenFolder(evt)
             else:
+                self.preprocpanel.Initialize(imgcfg)
+                self.procpanel.Initialize()
                 self.imgpanel.Imgs = self.OpenedImgs.copy()
                 self.imgpanel.Initialize()
-                self.preprocpanel.Initialize()
-                self.procpanel.Initialize()
+                self.Preprocess(evt)
     
     def OnError(self, msg):
         """
@@ -360,7 +399,6 @@ class VampyFrame(wx.Frame):
         self.imgpanel.Imgs = vload.preproc_images(self.OpenedImgs, orient, crop)
         self.imgpanel.SetRanges()
         self.imgpanel.Draw()
-        evt.Skip()
         
     def Process(self, evt):
         """
@@ -420,6 +458,14 @@ class VampyFrame(wx.Frame):
     
     def OnExit(self, evt):
         self.Close()
+    
+    def OnReload(self, evt):
+        reload(vload)
+        reload(vanalys)
+        reload(vfeat)
+        reload(vout)
+        reload(vfit)
+        evt.Skip()
         
     def OnAbout(self, evt):
         description = """Vesicle Aspiration with MicroPipettes made with Python
@@ -484,6 +530,7 @@ class VampyTensionsFrame(wx.Frame):
         wx.Frame.__init__(self, parent, id, title = 'Dilation vs Tension')
         self.tau, self.tau_err = tensiondata['tension']
         self.alpha, self.alpha_err = tensiondata['dilation']
+#        hsizer = wx.BoxSizer(wx.HORIZONTAL)
         
         panel = wx.Panel(self, -1)
         pansizer = wx.BoxSizer(wx.VERTICAL)
@@ -498,15 +545,18 @@ class VampyTensionsFrame(wx.Frame):
         else:
             slider = 0
         self.Slider = wx.Slider(panel, -1, slider, 0, len(self.tau))
-        self.Bind(wx.EVT_SCROLL, self.OnSlide, self.Slider)        
+        self.Bind(wx.EVT_SCROLL, self.OnSlide, self.Slider)
         pansizer.Add(self.Slider, 0, wx.GROW)
-        
-        fitpanel = wx.Panel(self, -1)
-#        fitchoice = wx.Cho
-        
         panel.SetSizer(pansizer)
+#        hsizer.Add(pansizer)
+        
+#        fitpanel = wx.Panel(self, -1)
+#        fitchoice = wx.ListBox(self, -1, choices = vout.FITS_IMPLEMENTED.keys())
+#        hsizer.Add(fitpanel)
+        
         panel.Fit()
         self.SetIcons(GetIconBundle('wxblockslogoset'))
+#        self.SetSizer(hsizer)
         self.Fit()
         self.Draw()
         
