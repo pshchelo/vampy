@@ -17,9 +17,10 @@ def averageImages(aver, **kwargs):
     if aver > 1:
         for key in kwargs.keys():
             val, err = kwargs[key]
-            val = val.reshape((-1,aver)).mean(axis=1)
-            err = err.reshape((-1,aver)).mean(axis=1)
-            kwargs[key] = np.asarray((val, err))
+            if val.ndim > 0:
+                averval = val.reshape((-1,aver)).mean(axis=1)
+                avererr = err.reshape((-1,aver)).mean(axis=1)
+                kwargs[key] = np.asarray((averval, avererr))
     return kwargs
 
 def get_geometry(**kwargs):
