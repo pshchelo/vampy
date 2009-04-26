@@ -6,8 +6,6 @@ Provides following objects:
     OneParamFilePanel - simple panel for processing one file with one parameter;
     NumValidator - validator instance suitable for integers or floats;
     ValidTextEntryDialog - similar to wx.TextEntryDialog but allows a custom validator to be attached
-
-TODO: make a GUI element consisting of panel with two sliders for setting some min and max value
 """
 
 import wx
@@ -25,7 +23,7 @@ def rgba_wx2mplt(wxcolour):
         mpltrgba.append(converted)
     return tuple(mpltrgba)
 
-class MinMaxSliders(wx.Panel):
+class DoubleSlider(wx.Panel):
     '''
     Provides a panel with two sliders to visually set 2 values (i.e. minimum and maximum, limits etc)
     TODO: implement all missing  methods of wx.Slider
