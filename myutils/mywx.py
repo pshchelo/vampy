@@ -29,19 +29,25 @@ class DoubleSlider(wx.Panel):
     TODO: implement all missing  methods of wx.Slider
     TODO: make styles work as with normal slider, but also some panel styling would be great
     '''
-    def __init__(self, parent, id, value = (1,100), min=1, max=100, gap = 0, name=None):
-        wx.Panel.__init__(self, parent, id)
+    def __init__(self, parent, id, value = (1,100), min=1, max=100, gap = 0, style=wx.SL_HORIZONTAL, panelstyle=wx.TAB_TRAVERSAL|wx.NO_BORDER, name=None):
+        wx.Panel.__init__(self, parent, id, style=panelstyle)
         self.gap = gap
-        minDefault, maxDefault = value
-        self.minslider = wx.Slider(self, -1, minDefault, min, max)
-        self.maxslider = wx.Slider(self, -1, maxDefault, min, max)
+        initmin, initmax = value
+        self.minslider = wx.Slider(self, -1, initmin, min, max, style=style)
+        self.maxslider = wx.Slider(self, -1, initmax, min, max, style=style)
         self.Bind(wx.EVT_SLIDER, self.OnSlideMin, self.minslider)
         self.Bind(wx.EVT_SLIDER, self.OnSlideMax, self.maxslider)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.minslider, wx.GROW)
-        sizer.Add(self.maxslider, wx.GROW)
+        if style == wx.SL_HORIZONTAL:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+        elif style == wx.SL_VERTICAL:
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+        else:
+            print 'strange style'        
+        sizer.Add(self.minslider)
+        sizer.Add(self.maxslider)
         self.SetSizer(sizer)
-
+        self.Fit()
+        
     def SetValue(self, value):
         min, max = value
         self.minslider.SetValue(min)
@@ -70,6 +76,7 @@ class DoubleSlider(wx.Panel):
             raise AssertionError
         else:
             return maxmax
+        
     def SetRange(self, range):
         self.minslider.SetRange(range)
         self.maxslider.SetRange(range)
