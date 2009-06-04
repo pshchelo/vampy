@@ -1,2 +1,2 @@
 #!/usr/bin/env python
-'''Package initialization file'''
+'''VAMPy - package for the VAMP project.'''
