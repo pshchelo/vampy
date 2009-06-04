@@ -2,6 +2,7 @@
 """
 loading of various data for VAMP project
 """
+import os
 import numpy as np
 ### for loading images to numpy arrays with PIL
 from scipy import misc
@@ -27,8 +28,6 @@ def read_grey_image(filename):
 
 def read_conf_file(filename):
     imgcfg = {}
-    for side in SIDES:
-        imgcfg[side]=0
     try:
         conffile = open(filename, 'r')
     except IOError:
@@ -36,10 +35,9 @@ def read_conf_file(filename):
     lines = conffile.readlines()
     conffile.close()
     for line in lines:
-        items = line.split()
-        if items[0] in SIDES:
-            imgcfg[items[0]] = items[1]
-    return imgcfg 
+        items = line.split(None,1)
+        imgcfg[items[0]] = items[1].rstrip('\n')
+    return imgcfg
 
 def preproc_images(images, orientation, crop):
     '''prepocess images
@@ -61,12 +59,13 @@ def preproc_images(images, orientation, crop):
         rolled = np.rot90(rolled, 3)
     return np.rollaxis(rolled, 2)  # bring the original first axis back from last
 
-def read_pressures(filename, stage):
+def read_pressures_file(filename, stage):
     """
     Reads pressures from file used in acquisition.
     @param filename:
     @param stage:
     """
+    mesg = None
     presfile = open(filename, 'r')
     lines = presfile.readlines()
     presfile.close()
@@ -77,8 +76,33 @@ def read_pressures(filename, stage):
             try:
                 pressure = float(elements[stage])
             except(ValueError):
-                print 'Wrong file format!'
-                return None
+                mesg = 'Wrong pressure file format! (%s)'%line
+                return None, mesg
             pressures.append(pressure)
-    return np.asarray(pressures)
-    
+    return np.asarray(pressures), mesg
+
+def read_pressures_filenames(filenames, stage):
+    mesg = None
+    pressures = []
+    index = []
+    for filename in filenames:
+        filename = os.path.basename(filename)
+        pressstring, ext = os.path.splitext(filename)
+        pressstring = pressstring.replace('-', ' ')
+        pressstring = pressstring.replace('_', ' ')
+        elements = pressstring.split()
+        try:
+            pressure = float(elements[stage+1])
+            ind = int(elements[-1])
+        except(ValueError):
+            mesg = 'Wrong filenames format! (%s)'%filename
+            return None, mesg
+        pressures.append(pressure)
+        index.append(ind)
+    aver = max(index)+1
+    press = np.unique1d(np.asarray(pressures))
+#    print aver, len(press), len(pressures)
+    if aver*len(press) != len(pressures):
+        mesg = 'Some files are missing!'
+        return None, mesg
+    return press, aver, mesg
