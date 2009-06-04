@@ -2,10 +2,13 @@
 """
 Collection of GUI elements created by Pavlo Shchelokovskyy.
 This module cannot be used on it own.
+Provides following functions:
+    rgba_wx2mplt - Convert wx.Colour to colour format used by matplotlib
 Provides following objects:
     OneParamFilePanel - simple panel for processing one file with one parameter;
     NumValidator - validator instance suitable for integers or floats;
     ValidTextEntryDialog - similar to wx.TextEntryDialog but allows a custom validator to be attached
+    DoubleSlider - panel with two sliders to visually set 2 values
 """
 
 import wx
@@ -13,7 +16,7 @@ import os
 
 def rgba_wx2mplt(wxcolour):
     """
-    Convert wx.Colour instance to tuple of rgba values to range 0-1 (used by matplotlib).
+    Convert wx.Colour instance to float tuple of rgba values to range in 0-1 used by matplotlib.
     @param wxcolour: wx.Colour instance
     """
     mpltrgba = []
@@ -26,96 +29,101 @@ def rgba_wx2mplt(wxcolour):
 class DoubleSlider(wx.Panel):
     '''
     Provides a panel with two sliders to visually set 2 values (i.e. minimum and maximum, limits etc)
-    TODO: implement all missing  methods of wx.Slider
-    TODO: make styles work as with normal slider, but also some panel styling would be great
+    The instance of this class has to be bound to an event handler by itself and not by parent
+    (i.e. USE doubleslider.Bind(event, callback) AND NOT parent.Bind(event, callback, doubleslider))
     '''
-    def __init__(self, parent, id, value = (1,100), min=1, max=100, gap = 0, style=wx.SL_HORIZONTAL, panelstyle=wx.TAB_TRAVERSAL|wx.NO_BORDER, name=None):
-        wx.Panel.__init__(self, parent, id, style=panelstyle)
-        self.gap = gap
-        initmin, initmax = value
-        self.minslider = wx.Slider(self, -1, initmin, min, max, style=style)
-        self.maxslider = wx.Slider(self, -1, initmax, min, max, style=style)
-        self.Bind(wx.EVT_SLIDER, self.OnSlideMin, self.minslider)
-        self.Bind(wx.EVT_SLIDER, self.OnSlideMax, self.maxslider)
-        if style == wx.SL_HORIZONTAL:
-            sizer = wx.BoxSizer(wx.VERTICAL)
-        elif style == wx.SL_VERTICAL:
+    def __init__(self, parent, id, 
+                 value = (1,100), min=1, max=100, gap = None, 
+                 pos=wx.DefaultPosition, size=wx.DefaultSize,
+                 panelstyle=wx.TAB_TRAVERSAL|wx.NO_BORDER, 
+                 style=wx.SL_HORIZONTAL, name=wx.PanelNameStr):
+        wx.Panel.__init__(self, parent, id, pos=pos, size=size, style=panelstyle, name=name)
+        low, high = value
+        self.lowslider = wx.Slider(self, -1, low, min, max, style=style)
+        self.highslider = wx.Slider(self, -1, high, min, max, style=style)
+        if gap != None: # if the coupling between two sliders is set
+            self.gap = gap
+            self.Bind(wx.EVT_SLIDER, self.OnSlideLow, self.lowslider)
+            self.Bind(wx.EVT_SLIDER, self.OnSlideHigh, self.highslider)
+        if style & wx.SL_VERTICAL:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
-        else:
-            print 'strange style'        
-        sizer.Add(self.minslider)
-        sizer.Add(self.maxslider)
+        else:  # horizontal sliders are default
+            sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.lowslider, 0, wx.GROW)
+        sizer.Add(self.highslider, 0, wx.GROW)
         self.SetSizer(sizer)
         self.Fit()
         
-    def SetValue(self, value):
-        min, max = value
-        self.minslider.SetValue(min)
-        self.maxslider.SetValue(max)
+    def GetLow(self):
+        return self.lowslider.GetValue()
+    def SetLow(self, int):
+        return self.lowslider.SetValue(int)
+    def GetHigh(self):
+        return self.highslider.GetValue()
+    def SetHigh(self, int):
+        return self.highslider.SetValue(int)
     def GetValue(self):
-        return self.minslider.GetValue(), self.maxslider.GetValue()
-        
-    def SetMin(self, min):
-        self.minslider.SetMin(min)
-        self.maxslider.SetMin(min)
+        return self.GetLow(), self.GetHigh()
+    def SetValue(self, value):
+        low, high = value
+        self.SetLow(low)
+        self.SetHigh(high)
+    
+    Low = property(GetLow, SetLow)
+    High = property(GetHigh, SetHigh)
+    Value = property(GetValue, SetValue)
+    
     def GetMin(self):
-        minmin = self.minslider.GetMin()
-        minmax = self.maxslider.GetMin()
-        if minmin != minmax:
-            raise AssertionError
-        else:
-            return minmin
-        
-    def SetMax(self, max):
-        self.minslider.SetMax(max)
-        self.maxslider.SetMax(max)
+        return self.lowslider.GetMin()
+    def SetMin(self, int):
+        self.lowslider.SetMin(int)
+        self.highslider.SetMin(int)
     def GetMax(self):
-        maxmin = self.minslider.GetMax()
-        maxmax = self.maxslider.GetMax()
-        if maxmin != maxmax:
-            raise AssertionError
-        else:
-            return maxmax
-        
-    def SetRange(self, range):
-        self.minslider.SetRange(range)
-        self.maxslider.SetRange(range)
+        return self.lowslider.GetMax()
+    def SetMax(self, int):
+        self.lowslider.SetMax(int)
+        self.highslider.SetMax(int)
     def GetRange(self):
-        rangemin = self.minslider.GetRange()
-        rangemax = self.maxslider.GetRange()
-        if rangemin != rangemax:
-            raise AssertionError
-        else:
-            return rangemax
+        return self.lowslider.GetRange()
+    def SetRange(self, min, max):
+        self.lowslider.SetRange(min, max)
+        self.highslider.SetRange(min, max)
+    
+    Min = property(GetMin, SetMin)
+    Max = property(GetMax, SetMax)
+    Range = property(GetRange, SetRange)
         
-    def OnSlideMin(self, evt):
-        min, max = self.GetValue()
-        rangemin, rangemax = self.GetRange()
-        if min > rangemax-self.gap:
-            value = rangemax-self.gap, rangemax
-            self.SetValue(value)
-            evt.Skip()
-            return
-        if min > max-self.gap:
-            value = min, min+self.gap
-            self.SetValue(value)
-            evt.Skip()
-            return
-        evt.Skip()
-    def OnSlideMax(self, evt):
-        min, max = self.GetValue()
-        rangemin, rangemax = self.GetRange()
-        if max < rangemin+self.gap:
-            value = rangemin, rangemin+self.gap
-            self.SetValue(value)
-            evt.Skip()
-            return
-        if max < min-self.gap:
-            value = max-self.gap, max
-            self.SetValue(value)
-            evt.Skip()
-            return
-        evt.Skip()
+    def GetLineSize(self):
+        return self.lowslider.GetLineSize()
+    def SetLineSize(self, int):
+        self.lowslider.SetLineSize(int)
+        self.highslider.SetLineSize(int)
+    def GetPageSize(self):
+        return self.lowslider.GetPageSize()
+    def SetPageSize(self, int):
+        self.lowslider.SetPageSize(int)
+        self.highslider.SetPageSize(int)
+    
+    LineSize = property(GetLineSize, SetLineSize)
+    PageSize = property(GetPageSize, SetPageSize)
+    
+    def OnSlideLow(self, evt):
+       low, high = self.GetValue()
+       min, max = self.GetRange()
+       if low > max-self.gap:
+           self.SetLow(max-self.gap)
+           return
+       if low > high-self.gap:
+           self.SetHigh(low+self.gap)
+    
+    def OnSlideHigh(self, evt):
+       low, high = self.GetValue()
+       min, max = self.GetRange()
+       if high < min+self.gap:
+           self.SetHigh(min+self.gap)
+           return
+       if high < low+self.gap:
+           self.SetLow(high-self.gap)
         
 class NumValidator(wx.PyValidator):
     """
