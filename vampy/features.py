@@ -311,7 +311,44 @@ def wall_points_pix2(img, refsx, sigma):
         ref = np.concatenate((xy,drefe),1)
         refs = np.append(refs, ref)
     return refs.reshape(-1,2,2)
+
+def wall_points_pix3(img, refsx, axisy, sigma):
+    N=2
+    refs = np.array([])
+    axisy = np.array([113,115])
+    for i,refx in enumerate(refsx):
+        prof = img[:,refx]
+        mid = axisy[i]
+#        mid = len(prof)/2
+        filtered = ndimage.gaussian_gradient_magnitude(ndimage.sobel(prof), sigma)
         
+        refy = np.asarray((np.argmax(filtered[:mid]), np.argmax(filtered[mid:])+mid))
+        dref = np.asarray([PIX_ERR, 0])
+        rx = np.tile(refx,N)
+        xy = np.column_stack((refy,rx))#.flatten()
+        drefe = np.repeat(np.expand_dims(dref,0), N, 0)
+        ref = np.concatenate((xy,drefe),1)
+        refs = np.append(refs, ref)
+    return refs.reshape(-1,2,2)
+    
+def wall_points_pix4(img, refsx, axis, pipette):
+    piprad, pipthick = pipette
+    N=2
+    refs = np.array([])
+    for index, refx in enumerate(refsx):
+        pipprof = img[:, refx]
+        center = axis[index]
+        refy2 = np.argmin(pipprof[center+piprad:center+piprad+pipthick])+center+piprad
+        refy1 = np.argmin(pipprof[center-piprad-pipthick:center-piprad])+center-piprad-pipthick
+        refy = np.asarray((refy1, refy2))
+        dref = np.asarray([PIX_ERR, 0])
+        rx = np.tile(refx,N)
+        xy = np.column_stack((refy,rx))#.flatten()
+        drefe = np.repeat(np.expand_dims(dref,0), N, 0)
+        ref = np.concatenate((xy,drefe),1)
+        refs = np.append(refs, ref)
+    return refs.reshape(-1,2,2)
+
 def line_to_line(refs):
     '''
     Return mean distance between two (not parallel) lines
@@ -339,7 +376,8 @@ def extract_pix(profile, sigma, minaspest, mivesest, mode):
 
 def extract_pix_phc(profile, sigma, minaspest, minvesest):
     #gradient of gauss-presmoothed image
-    grad = ndimage.gaussian_gradient_magnitude(profile, sigma)
+#    grad = ndimage.gaussian_gradient_magnitude(profile, sigma)
+    grad = ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
     # find pipette tip
     pip = np.argmax(profile[minaspest:minvesest])+minaspest
     #aspirated vesicle edge - pixel rez
@@ -390,16 +428,20 @@ def locate(**kwargs):
     mode = kwargs['mode']
 
     sigma = kwargs['sigma'] #int or float parameter for Gauss smoothing of brightness profiles    
-    minvesest = kwargs['minvesest'] #int (over)estimation of the aspirated tip closest to the pipette mouth
-    minaspest = kwargs['minaspest'] #int (over)estimation of the outer vesicle edge closest to the pipette mouth
+
+#    int (over)estimation of the aspirated tip closest to the pipette mouth
+#    int (over)estimation of the outer vesicle edge closest to the pipette mouth
+    minaspest, minvesest = kwargs['aspves']
 
     subpix = kwargs['subpix'] #Bool, make subpixel resolution or not
     mismatch = kwargs['mismatch'] #int or float threshold to discard sub-pix resolution 
     extra = kwargs['extra'] #Boolean, whether to return extra outputs
 
     refsx = (0, minaspest) #where to measure pipette radius
+    axis = kwargs['axis'] #points on y-values on respective refsx giving estimate of pipette axis
+    pipette = kwargs['pipette'] #tuple of estimates for pipette radius and thickness
     imgN = images.shape[0] #total number of images
-    metrics = np.empty(imgN)
+    metrics = np.empty(imgN) #coefficient arising from not strictly horizontal pipette axis
     metrics_err = np.empty_like(metrics)
     piprads = np.empty_like(metrics) #pipette radius
     piprads_err = np.empty_like(metrics)
@@ -417,7 +459,9 @@ def locate(**kwargs):
 #        print "Using Image %02i"%(imgindex+1)
 
         #reference points on pipette walls (with respective errors)
-        refs = wall_points_pix2(img, refsx, sigma)
+#        refs = wall_points_pix2(img, refsx, sigma)
+#        refs = wall_points_pix3(img, refsx, None, sigma)
+        refs = wall_points_pix4(img, refsx, axis, pipette)
         if subpix:
             refs, refs_err, extra_walls = wall_points_subpix(img, refs, mode)
         #pipette radius
@@ -430,22 +474,23 @@ def locate(**kwargs):
         pip_err = PIX_ERR
         asp_err = PIX_ERR
         ves_err = PIX_ERR
-
+        
+        if extra:
+            extra_img = {}
+            extra_img['refs'] = refs
+            extra_img['piprad'] = np.asarray((piprad, PIX_ERR))
+            extra_img['profile'] = profile
+            extra_img['pip'] = pip
+            extra_img['asp'] = asp
+            extra_img['ves'] = ves
+                
         if subpix:
             pipfit, aspfit, vesfit = extraxt_subpix(profile, pip, asp, ves, mode)
             if extra:
-                extra_img = {}
-                extra_img['refs'] = refs
                 extra_img['walls'] = extra_walls
-                extra_img['piprad'] = np.asarray((piprad, pix_err))
-                extra_img['profile'] = profile
-                extra_img['pip'] = pip
                 extra_img['pipfit'] = pipfit
-                extra_img['asp'] = asp
                 extra_img['aspfit'] = aspfit
-                extra_img['ves'] = ves
                 extra_img['vesfit'] = vesfit
-                extra_out.append(extra_img)
             # use subpix only if it is within mismatch from pix
             if pipfit[-1] == 1 and np.fabs(pip - pipfit[0][2]) < mismatch:
                 pip = pipfit[0][2]
@@ -457,6 +502,8 @@ def locate(**kwargs):
                 ves = vesfit[0][2]
                 ves_err = fit_err(vesfit)[2]
         #populate arrays with results
+        if extra:
+            extra_out.append(extra_img)
         result = [metric, metric_err, piprad, piprad_err, asp, asp_err, pip, pip_err, ves, ves_err]
         for index, item in enumerate(results):
             item[imgindex] = result[index]
