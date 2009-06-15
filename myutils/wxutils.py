@@ -14,6 +14,21 @@ Provides following objects:
 import wx
 import os
 
+RES_DIR = 'res'
+
+def GetPngImage(imgfilename):
+    imgext = 'png'
+    filename = os.path.join(os.path.dirname(__file__), RES_DIR, imgfilename+'.'+imgext)
+    return wx.Image(filename, wx.BITMAP_TYPE_PNG)
+
+def GetPngBitmap(imgfilename):
+    return wx.BitmapFromImage(GetPngImage(imgfilename))
+
+def GetIcoBundle(imgfilename):
+    icoext = 'ico'
+    filename = os.path.join(os.path.dirname(__file__), RES_DIR, imgfilename+'.'+icoext)
+    return wx.IconBundleFromFile(filename, wx.BITMAP_TYPE_ICO)
+
 def rgba_wx2mplt(wxcolour):
     """
     Convert wx.Colour instance to float tuple of rgba values to range in 0-1 used by matplotlib.
@@ -29,8 +44,6 @@ def rgba_wx2mplt(wxcolour):
 class DoubleSlider(wx.Panel):
     '''
     Provides a panel with two sliders to visually set 2 values (i.e. minimum and maximum, limits etc)
-    The instance of this class has to be bound to an event handler by itself and not by parent
-    (i.e. USE doubleslider.Bind(event, callback) AND NOT parent.Bind(event, callback, doubleslider))
     '''
     def __init__(self, parent, id, 
                  value = (1,100), min=1, max=100, gap = None, 
@@ -39,12 +52,14 @@ class DoubleSlider(wx.Panel):
                  style=wx.SL_HORIZONTAL, name=wx.PanelNameStr):
         wx.Panel.__init__(self, parent, id, pos=pos, size=size, style=panelstyle, name=name)
         low, high = value
+        self.coupling = False
+        if gap != None:
+            self.gap = gap
+            self.coupling = True
         self.lowslider = wx.Slider(self, -1, low, min, max, style=style)
         self.highslider = wx.Slider(self, -1, high, min, max, style=style)
-        if gap != None: # if the coupling between two sliders is set
-            self.gap = gap
-            self.Bind(wx.EVT_SLIDER, self.OnSlideLow, self.lowslider)
-            self.Bind(wx.EVT_SLIDER, self.OnSlideHigh, self.highslider)
+        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.lowslider)
+        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.highslider)
         if style & wx.SL_VERTICAL:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
         else:  # horizontal sliders are default
@@ -55,14 +70,23 @@ class DoubleSlider(wx.Panel):
         self.Fit()
         
     def GetLow(self):
+        """
+        Value of the first(upper or left) slider
+        """
         return self.lowslider.GetValue()
     def SetLow(self, int):
         return self.lowslider.SetValue(int)
     def GetHigh(self):
+        """
+        Value of the second(lower or right) slider
+        """
         return self.highslider.GetValue()
     def SetHigh(self, int):
         return self.highslider.SetValue(int)
     def GetValue(self):
+        """
+        Value of both sliders as a tuple
+        """
         return self.GetLow(), self.GetHigh()
     def SetValue(self, value):
         low, high = value
@@ -74,16 +98,25 @@ class DoubleSlider(wx.Panel):
     Value = property(GetValue, SetValue)
     
     def GetMin(self):
+        """
+        Minimal value for both sliders
+        """
         return self.lowslider.GetMin()
     def SetMin(self, int):
         self.lowslider.SetMin(int)
         self.highslider.SetMin(int)
     def GetMax(self):
+        """
+        Maximum value for both sliders
+        """
         return self.lowslider.GetMax()
     def SetMax(self, int):
         self.lowslider.SetMax(int)
         self.highslider.SetMax(int)
     def GetRange(self):
+        """
+        Range of both sliders as a tuple
+        """
         return self.lowslider.GetRange()
     def SetRange(self, min, max):
         self.lowslider.SetRange(min, max)
@@ -94,11 +127,17 @@ class DoubleSlider(wx.Panel):
     Range = property(GetRange, SetRange)
         
     def GetLineSize(self):
+        """
+        The amount of thumb movement when pressing arrow buttons
+        """
         return self.lowslider.GetLineSize()
     def SetLineSize(self, int):
         self.lowslider.SetLineSize(int)
         self.highslider.SetLineSize(int)
     def GetPageSize(self):
+        """
+        The amount of thumb movement when pressing Page Up/Down buttons
+        """
         return self.lowslider.GetPageSize()
     def SetPageSize(self, int):
         self.lowslider.SetPageSize(int)
@@ -107,23 +146,46 @@ class DoubleSlider(wx.Panel):
     LineSize = property(GetLineSize, SetLineSize)
     PageSize = property(GetPageSize, SetPageSize)
     
-    def OnSlideLow(self, evt):
-       low, high = self.GetValue()
-       min, max = self.GetRange()
-       if low > max-self.gap:
-           self.SetLow(max-self.gap)
-           return
-       if low > high-self.gap:
-           self.SetHigh(low+self.gap)
+    def SlideLow(self):
+        low, high = self.GetValue()
+        min, max = self.GetRange()
+        if low > max-self.gap:
+            self.SetLow(max-self.gap)
+            return
+        if low > high-self.gap:
+            self.SetHigh(low+self.gap)
     
-    def OnSlideHigh(self, evt):
-       low, high = self.GetValue()
-       min, max = self.GetRange()
-       if high < min+self.gap:
-           self.SetHigh(min+self.gap)
-           return
-       if high < low+self.gap:
-           self.SetLow(high-self.gap)
+    def SlideHigh(self):
+        low, high = self.GetValue()
+        min, max = self.GetRange()
+        if high < min+self.gap:
+            self.SetHigh(min+self.gap)
+            return
+        if high < low+self.gap:
+            self.SetLow(high-self.gap)
+    
+    def GetCoupling(self):
+        return self.coupling
+    def SetCoupling(self, state):
+        self.coupling = state
+    
+    def GetGap(self):
+        if self.coupling:
+            return self.gap
+        else:
+            return None
+    def SetGap(self, gap):
+        self.gap = gap
+
+    def OnSlide(self, inevt):
+        if self.coupling and inevt.GetEventObject() == self.lowslider:
+            self.SlideLow()
+        elif self.coupling and inevt.GetEventObject() == self.highslider:
+            self.SlideHigh()
+        event = wx.CommandEvent(inevt.GetEventType(), self.GetId()) 
+        event.SetEventObject(self) 
+        self.GetEventHandler().ProcessEvent(event)
+        inevt.Skip()
         
 class NumValidator(wx.PyValidator):
     """
