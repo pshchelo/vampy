@@ -16,18 +16,16 @@ import os
 
 RES_DIR = 'res'
 
-def GetPngImage(imgfilename):
-    imgext = 'png'
-    filename = os.path.join(os.path.dirname(__file__), RES_DIR, imgfilename+'.'+imgext)
-    return wx.Image(filename, wx.BITMAP_TYPE_PNG)
+def GetResImage(imgfilename):
+    filename = os.path.join(os.path.dirname(__file__), RES_DIR, imgfilename)
+    return wx.Image(filename, wx.BITMAP_TYPE_ANY)
 
-def GetPngBitmap(imgfilename):
-    return wx.BitmapFromImage(GetPngImage(imgfilename))
+def GetResBitmap(imgfilename):
+    return wx.BitmapFromImage(GetResImage(imgfilename))
 
-def GetIcoBundle(imgfilename):
-    icoext = 'ico'
-    filename = os.path.join(os.path.dirname(__file__), RES_DIR, imgfilename+'.'+icoext)
-    return wx.IconBundleFromFile(filename, wx.BITMAP_TYPE_ICO)
+def GetResIconBundle(imgfilename):
+    filename = os.path.join(os.path.dirname(__file__), RES_DIR, imgfilename)
+    return wx.IconBundleFromFile(filename, wx.BITMAP_TYPE_ANY)
 
 def rgba_wx2mplt(wxcolour):
     """
