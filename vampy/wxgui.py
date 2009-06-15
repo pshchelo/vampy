@@ -15,6 +15,7 @@ from numpy import pi, log, empty
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
 
 import load as vload
@@ -23,14 +24,15 @@ import analysis as vanalys
 import fitting as vfit
 import output as vout
 
-from myutils.wxutils import NumValidator, rgba_wx2mplt, DoubleSlider
-from myutils.base64icons import GetIconBundle
+from myutils.wxutils import NumValidator, rgba_wx2mplt, DoubleSlider, GetResIconBundle, GetResBitmap
 from myutils import utils
 
 SIDES = ['left','right','top','bottom']
 DEFAULT_SCALE = '0.3225'  # micrometer/pixel, Teli CS3960DCL, 20x magnification
 DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
 CFG_FILENAME = 'vampy.cfg'
+FRAME_ICON = 'wxblocks-multi.ico'
+SAVETXT_ICON = 'savetxt24.png'
 
 class VampyMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
@@ -75,6 +77,20 @@ class VampyStatusBar(wx.StatusBar):
             y = evt.ydata
             self.SetStatusText('x = %f, y = %f'%(x, y), 0)
 
+class VampyNavToolbar(NavigationToolbar2WxAgg):
+    def __init__(self, canvas, custombuttons):
+        """
+        
+        @param canvas:
+        @param custombuttons: tuple or list of (Shortname, Bitmap, Longname, isToggle, Handler)
+        """
+        
+        NavigationToolbar2WxAgg.__init__(self, canvas)
+        for button in custombuttons:
+            shortname, bitmap, longname, isToggle, handler = button
+            tool = self.AddSimpleTool(-1, bitmap, shortname, longname, isToggle)
+            wx.EVT_MENU(self, -1, handler)
+        
 class VampyPreprocessPanel(wx.Panel):
     '''Sets parameters to preprocess images'''
     def __init__(self, parent, preprocessor):
@@ -240,6 +256,11 @@ class VampyImagePanel(wx.Panel):
         self.canvas.mpl_connect('motion_notify_event', parent.statusbar.SetPosition)
         vsizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
+        custombuttons = ('Save txt file', GetResBitmap(SAVETXT_ICON), 'Save image info', False, self.GetParent().OnSave),
+        self.toolbar = VampyNavToolbar(self.canvas, custombuttons)
+        self.toolbar.Realize()
+        vsizer.Add(self.toolbar, 0, wx.ALIGN_LEFT|wx.GROW)
+        
         slidersizer = wx.FlexGridSizer(cols=2)
         self.ImgNoTxt = wx.TextCtrl(self, -1, "0", size=(50,20),
                                 style = wx.TE_READONLY | wx.TE_CENTER)
@@ -253,7 +274,7 @@ class VampyImagePanel(wx.Panel):
         regionlabel = wx.StaticText(self, -1, 'Aspirated\nVesicle')
         slidersizer.Add(regionlabel, 0, wx.ALIGN_RIGHT)
         self.regionslider = DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='aspves')
-        self.regionslider.Bind(wx.EVT_SLIDER, self.OnSlide)
+        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.regionslider)
         self.paramsliders.append(self.regionslider)
         slidersizer.Add(self.regionslider, 1, wx.GROW|wx.ALIGN_LEFT)
         slidersizer.AddGrowableCol(1,1)
@@ -266,12 +287,12 @@ class VampyImagePanel(wx.Panel):
         label = wx.StaticText(self, -1, name)
         axslidersizer.Add(label)
         self.axisslider = DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
-        self.axisslider.Bind(wx.EVT_SLIDER, self.OnSlide)
+        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.axisslider)
         
         name = 'pipette'
         label = wx.StaticText(self, -1, name)
         self.pipetteslider = DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
-        self.pipetteslider.Bind(wx.EVT_SLIDER, self.OnSlide)
+        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.pipetteslider)
         axslidersizer.Add(label)
         
         axslidersizer.Add(self.axisslider, 1, wx.GROW|wx.ALIGN_TOP)
@@ -336,23 +357,21 @@ class VampyImagePanel(wx.Panel):
 #===============================================================================
         imgno, ysize, xsize = self.Imgs.shape
         
-        strvalue = imgcfg.get('aspves', None)
-        if not strvalue:
-            value = (0, xsize-2)
-        else:
-            value = (int(strvalue.split()[0]), int(strvalue.split()[1]))
-        self.regionslider.SetValue(value)        
+        strvalue = imgcfg.get('aspves', '')
+        value, mesg = utils.split_to_int(strvalue, (0, xsize-1))
+        if mesg:
+            self.GetParent().OnError(mesg)
+        self.regionslider.SetValue(value)
         
         for key in ('axis','pipette'):
-            strvalue = imgcfg.get(key, None)
-            if not strvalue:
-                value = (0, ysize/4)
-            else:
-                value = (int(strvalue.split()[0]), int(strvalue.split()[1]))
+            strvalue = imgcfg.get(key, '')
+            value, mesg = utils.split_to_int(strvalue, (0, ysize/4))
+            if mesg:
+                self.GetParent().OnError(mesg)
             wx.FindWindowByName(key).SetValue(value)
         
         self.Draw()
-
+            
     def OnSlide(self, evt):
         self.SetImgNo()
         self.Draw()
@@ -410,7 +429,7 @@ class VampyFrame(wx.Frame):
         self.SetSizer(hsizer)
         self.Fit()
         self.Centre()
-        self.SetIcons(GetIconBundle('wxblockslogoset'))
+        self.SetIcons(GetResIconBundle(FRAME_ICON))
     
     def OnOpenFolder(self, evt):
         """
@@ -571,7 +590,8 @@ class VampyFrame(wx.Frame):
     
     def OnExit(self, evt):
         self.Close()
-    
+    def OnSave(self, evt):
+        print 'Saved'
     def OnReloadMath(self, evt):
         """
         Explicitly reloads all imported modules from VAMPy projects.
@@ -676,16 +696,12 @@ class VampyOtherUserDataDialog(wx.Dialog):
 class VampyTensionsFrame(wx.Frame):
     def __init__(self, parent, id, tensiondata):
         wx.Frame.__init__(self, parent, id, title = 'Dilation vs Tension')
-
-        self.statusbar = VampyStatusBar(self)
-        self.SetStatusBar(self.statusbar)
-        
-        self.tau, self.tau_err = tensiondata['tension']
-        self.alpha, self.alpha_err = tensiondata['dilation']
-#        hsizer = wx.BoxSizer(wx.HORIZONTAL)
         
         panel = wx.Panel(self, -1)
         pansizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.statusbar = VampyStatusBar(self)
+        self.SetStatusBar(self.statusbar)
         
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
@@ -693,23 +709,24 @@ class VampyTensionsFrame(wx.Frame):
         self.axes = self.figure.add_subplot(111)
         pansizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-        if self.tau[0] == 0:
-            slider = 1
-        else:
-            slider = 0
-        self.Slider = wx.Slider(panel, -1, slider, 0, len(self.tau))
-        self.Bind(wx.EVT_SCROLL, self.OnSlide, self.Slider)
-        pansizer.Add(self.Slider, 0, wx.GROW)
-        panel.SetSizer(pansizer)
-#        hsizer.Add(pansizer)
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar.Realize()
+        pansizer.Add(self.toolbar, 0, wx.GROW)
         
-#        fitpanel = wx.Panel(self, -1)
-#        fitchoice = wx.ListBox(self, -1, choices = vout.FITS_IMPLEMENTED.keys())
-#        hsizer.Add(fitpanel)
+        self.tau, self.tau_err = tensiondata['tension']
+        self.alpha, self.alpha_err = tensiondata['dilation']
+        
+        if self.tau[0] == 0:
+            init = 1
+        else:
+            init = 0
+        self.slider = DoubleSlider(panel, -1, (init, len(self.tau)), 0, len(self.tau), gap=2)
+        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.slider)
+        pansizer.Add(self.slider, 0, wx.GROW)
+        panel.SetSizer(pansizer)
         
         panel.Fit()
-        self.SetIcons(GetIconBundle('wxblockslogoset'))
-#        self.SetSizer(hsizer)
+        self.SetIcons(GetResIconBundle(FRAME_ICON))
         self.Fit()
         self.Draw()
         
@@ -718,14 +735,14 @@ class VampyTensionsFrame(wx.Frame):
         evt.Skip()
     
     def Draw(self):
-        slider = self.Slider.GetValue()
+        low, high = self.slider.GetValue()
         self.axes.clear()
 
-        x = self.tau[slider:]
-        y = self.alpha[slider:]
-        sx = self.tau_err[slider:]
-        sy = self.alpha_err[slider:]
-        self.axes.plot(self.tau, self.alpha, 'ro', label = 'Measured')
+        x = self.tau[low:high+1]
+        y = self.alpha[low:high+1]
+        sx = self.tau_err[low:high+1]
+        sy = self.alpha_err[low:high+1]
+        self.axes.semilogx(self.tau, self.alpha, 'ro', label = 'Measured')
         
 #        x_b, y_b, sx_b, sy_b = self.tau[1:slider], self.alpha[1:slider], self.tau_err[1:slider], self.alpha_err[1:slider]
 #        x_e, y_e, sx_e, sy_e = self.tau[slider:], self.alpha[slider:], self.tau_err[slider:], self.alpha_err[slider:]
@@ -756,7 +773,7 @@ class VampyTensionsFrame(wx.Frame):
             f = vanalys.dilation_bend_evans
             self.axes.plot(x, f(x, bend, intercept), label = 'Evans fit')
         self.axes.set_title(title)
-        self.axes.legend()
+        self.axes.legend(loc=4)
         self.canvas.draw()
 
 class VampyGeometryFrame(wx.Frame):
@@ -767,7 +784,7 @@ class VampyGeometryFrame(wx.Frame):
         self.SetStatusBar(self.statusbar)
         
         panel = wx.Panel(self, -1)
-        pansizer = wx.BoxSizer()
+        pansizer = wx.BoxSizer(wx.VERTICAL)
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
@@ -787,8 +804,10 @@ class VampyGeometryFrame(wx.Frame):
             plot = self.figure.add_subplot(n,m,index+1, title = plottitle)
             plot.errorbar(x, y, y_err, fmt='bo-', label=plottitle)
             self.plots[item] = plot
-                  
-        self.SetIcons(GetIconBundle('wxblockslogoset'))
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar.Realize()
+        pansizer.Add(self.toolbar, 0, wx.GROW)
+        self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
         self.canvas.draw()
@@ -801,11 +820,15 @@ class VampyImageDebugFrame(wx.Frame):
         self.SetStatusBar(self.statusbar)
         
         panel = wx.Panel(self, -1)
-        pansizer = wx.BoxSizer()
+        pansizer = wx.BoxSizer(wx.VERTICAL)
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
         pansizer.Add(self.canvas, 1, wx.GROW)
+        
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar.Realize()
+        pansizer.Add(self.toolbar, 0, wx.GROW)
         
         profile = extra_out['profile']
         self.profileplot = self.figure.add_subplot(221, title = 'Axis brightness profile')
@@ -836,8 +859,7 @@ class VampyImageDebugFrame(wx.Frame):
 #        self.gradpipprofile2 = self.figure.add_subplot(326, title = 'Right pipette section gradient')
 #        self.gradpipprofile2.plot(utils.get_gradient(pipprofile2, 3))
 #        
-        self.SetIcons(GetIconBundle('wxblockslogoset'))
-#        sizer.Add(panel, 1, wx.GROW)
+        self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
         self.canvas.draw()

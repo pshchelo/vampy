@@ -33,6 +33,7 @@ def get_geometry(**kwargs):
 
     piprad = piprads.mean()
     piprad_err = sqrt(square(piprads_err).sum())/len(piprads_err)
+    print 'Pipette radius: %f with error %f'%(piprad, piprad_err)
 
     aspl = (pips - asps) * metrics
     aspl_err = sqrt((pips_err**2 + asps_err**2) * metrics**2 + (pips - asps)**2 * metrics_err**2)
