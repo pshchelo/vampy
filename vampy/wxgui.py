@@ -31,7 +31,7 @@ SIDES = ['left','right','top','bottom']
 DEFAULT_SCALE = '0.3225'  # micrometer/pixel, Teli CS3960DCL, 20x magnification
 DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
 CFG_FILENAME = 'vampy.cfg'
-FRAME_ICON = 'wxblocks-multi.ico'
+FRAME_ICON = 'wxpython-multi.ico'
 SAVETXT_ICON = 'savetxt24.png'
 
 class VampyMenuBar(wx.MenuBar):
@@ -69,26 +69,26 @@ class VampyStatusBar(wx.StatusBar):
     '''Status Bar for wxPython VAMP frontend'''
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent)
-        self.SetFieldsCount(1)
+        self.SetFieldsCount(2)
         
     def SetPosition(self, evt):
         if evt.inaxes:
             x = evt.xdata
             y = evt.ydata
-            self.SetStatusText('x = %f, y = %f'%(x, y), 0)
+            self.SetStatusText('x = %f, y = %f'%(x, y), 1)
 
 class VampyNavToolbar(NavigationToolbar2WxAgg):
     def __init__(self, canvas, custombuttons):
         """
         
         @param canvas:
-        @param custombuttons: tuple or list of (Shortname, Bitmap, Longname, isToggle, Handler)
+        @param custombuttons: tuple or list of ((Bitmap, Shortname, Longname, isToggle), Handler)
         """
         
         NavigationToolbar2WxAgg.__init__(self, canvas)
         for button in custombuttons:
-            shortname, bitmap, longname, isToggle, handler = button
-            tool = self.AddSimpleTool(-1, bitmap, shortname, longname, isToggle)
+            buttonargs, handler = button
+            tool = self.AddSimpleTool(-1, *buttonargs)
             wx.EVT_MENU(self, -1, handler)
         
 class VampyPreprocessPanel(wx.Panel):
@@ -256,7 +256,7 @@ class VampyImagePanel(wx.Panel):
         self.canvas.mpl_connect('motion_notify_event', parent.statusbar.SetPosition)
         vsizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-        custombuttons = ('Save txt file', GetResBitmap(SAVETXT_ICON), 'Save image info', False, self.GetParent().OnSave),
+        custombuttons = ((GetResBitmap(SAVETXT_ICON), 'Save txt file', 'Save image info', False), self.GetParent().OnSave),
         self.toolbar = VampyNavToolbar(self.canvas, custombuttons)
         self.toolbar.Realize()
         vsizer.Add(self.toolbar, 0, wx.ALIGN_LEFT|wx.GROW)
