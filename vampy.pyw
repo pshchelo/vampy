@@ -16,10 +16,10 @@ class VampyApp(App):
         shuts down the main frame, reloads its module and creates a new frame
         FIXME: memory leak with this type of reloading
         """
-        self.frame.Close()
+        self.frame.DestroyChildren()
+        self.frame.Destroy()
         reload(vgui)
-        self.frame = vgui.VampyFrame(parent=None, id=-1, title='VAMPy')
-        self.frame.Show()
+        self.OnInit()
 
 app = VampyApp(False)
 app.MainLoop()

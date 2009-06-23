@@ -471,7 +471,8 @@ class VampyFrame(wx.Frame):
             else:
                 self.preprocpanel.Initialize(imgcfg)
                 self.procpanel.Initialize()
-                self.imgpanel.Imgs = self.OpenedImgs.copy()
+                self.imgpanel.Imgs = self.OpenedImgs
+#                self.imgpanel.Imgs = self.OpenedImgs.copy()
                 self.imgpanel.Initialize()
                 self.Preprocess(evt)
                 self.imgpanel.SetSlidersPos(imgcfg)
@@ -590,6 +591,7 @@ class VampyFrame(wx.Frame):
     
     def OnExit(self, evt):
         self.Close()
+        
     def OnSave(self, evt):
         print 'Saved'
     def OnReloadMath(self, evt):
@@ -610,8 +612,16 @@ class VampyFrame(wx.Frame):
         Reloads GUI
         FIXME: introduces a memory leak, old version is not discarded completely
         """
-        print '='*20
-        wx.GetApp().Reload()
+#        dlg = wx.MessageDialog(self, 'Are you sure to reload GUI?', 'Please confirm',
+#                               style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
+#        if dlg.ShowModal() == wx.ID_YES:
+#            print '='*20
+#            wx.GetApp().Reload()
+        
+        dlg = wx.MessageDialog(self, 'Not implemented (yet).\nClose the application, so that you can start it again?', 
+                       'Confirmation', style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
+        if dlg.ShowModal() == wx.ID_YES:
+            self.OnExit(wx.EVT_WINDOW_DESTROY)
     
     def OnDebugImage(self, evt):
         """
@@ -838,11 +848,11 @@ class VampyImageDebugFrame(wx.Frame):
         self.profileplot.axvline(extra_out['ves'], color = 'green')
         
         self.imgplot = self.figure.add_subplot(222, title = 'Image')
-        self.imgplot.imshow(img, aspect='equal', cmap = mplt.cm.gray)
         refs = extra_out['refs']
         for ref in refs:
             self.imgplot.plot([ref[0][1]], [ref[0][0]], 'yo') # due to format of refs
-        
+        self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = mplt.cm.gray)
+
         self.pipprofile1 = self.figure.add_subplot(223, title = 'Left pipette section')
         xleft = refs[0][0][1]
         pipprofile1 = img[:,xleft]
