@@ -407,7 +407,7 @@ class VampyFrame(wx.Frame):
         wx.Frame.__init__(self, parent, id, title)
         
         self.folder = None
-        
+        self.OpenedImgs = None
         self.menubar = VampyMenuBar(self)
         self.SetMenuBar(self.menubar)
         
@@ -436,12 +436,10 @@ class VampyFrame(wx.Frame):
         Open directory of files, load them and initialise GUI
         @param evt: incoming event from caller
         """
-        if self.folder:
-            startfolder = self.folder
-        else:
-            startfolder = OWNPATH
+        if not self.folder:
+            self.folder = OWNPATH
         dirDlg = wx.DirDialog(self, message="Choose a directory",
-                                defaultPath = startfolder)
+                                defaultPath = self.folder)
         if dirDlg.ShowModal() != wx.ID_OK:
             dirDlg.Destroy()
             return
@@ -449,6 +447,7 @@ class VampyFrame(wx.Frame):
         dirDlg.Destroy()
         
         os.chdir(self.folder)
+        
         extensions = ['png','tif']
         extDlg = wx.SingleChoiceDialog(self, 'Choose image file type', 'File type', extensions)
         if extDlg.ShowModal() != wx.ID_OK:
@@ -456,7 +455,7 @@ class VampyFrame(wx.Frame):
             return
         fileext = extDlg.GetStringSelection()
         extDlg.Destroy()
-
+        
         self.imgfilenames = glob.glob(self.folder+'/*.'+fileext)
         if len(self.imgfilenames) == 0:
             msg = "No such files in the selected folder!"
@@ -464,6 +463,8 @@ class VampyFrame(wx.Frame):
             self.OnOpenFolder(evt)
         else:
             self.imgfilenames.sort()
+            if self.folder:
+                del(self.OpenedImgs)
             self.OpenedImgs, imgcfg, msg = self.LoadImages()
             if msg:
                 self.OnError(msg)
@@ -476,6 +477,8 @@ class VampyFrame(wx.Frame):
                 self.imgpanel.Initialize()
                 self.Preprocess(evt)
                 self.imgpanel.SetSlidersPos(imgcfg)
+                title = '%s - %s'%(self.GetTitle(), os.path.split(os.curdir)[1])
+                self.SetTitle(title)
     
     def LoadImages(self):
         imgcfgfilename = os.path.join(self.folder, CFG_FILENAME)
@@ -616,7 +619,8 @@ class VampyFrame(wx.Frame):
 #                               style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
 #        if dlg.ShowModal() == wx.ID_YES:
 #            print '='*20
-#            wx.GetApp().Reload()
+#            del(self.OpenedImgs)
+#            wx.GetApp().Reload(self.folder)
         
         dlg = wx.MessageDialog(self, 'Not implemented (yet).\nClose the application, so that you can start it again?', 
                        'Confirmation', style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
@@ -737,6 +741,8 @@ class VampyTensionsFrame(wx.Frame):
         
         panel.Fit()
         self.SetIcons(GetResIconBundle(FRAME_ICON))
+        title = '%s - %s'%(self.GetTitle(), os.path.split(os.curdir)[1])
+        self.SetTitle(title)
         self.Fit()
         self.Draw()
         
@@ -784,6 +790,9 @@ class VampyTensionsFrame(wx.Frame):
             self.axes.plot(x, f(x, bend, intercept), label = 'Evans fit')
         self.axes.set_title(title)
         self.axes.legend(loc=4)
+        labelfont = {'fontsize':'large'}
+        self.axes.set_xlabel(r'$\tau$', fontdict = labelfont)
+        self.axes.set_ylabel(r'$\alpha$')
         self.canvas.draw()
 
 class VampyGeometryFrame(wx.Frame):
@@ -820,6 +829,8 @@ class VampyGeometryFrame(wx.Frame):
         self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
+        title = '%s - %s'%(self.GetTitle(), os.path.split(os.curdir)[1])
+        self.SetTitle(title)
         self.canvas.draw()
         
 class VampyImageDebugFrame(wx.Frame):
@@ -872,8 +883,9 @@ class VampyImageDebugFrame(wx.Frame):
         self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
+        title = '%s - %s - Image %i'%(self.GetTitle(), os.path.split(os.curdir)[1], parent.imgpanel.GetImgNo())
+        self.SetTitle(title)
         self.canvas.draw()
-        pass
     
 if __name__ == "__main__":
     print __doc__
