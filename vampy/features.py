@@ -287,7 +287,7 @@ def split_two_peaks(ar, mode):
         if ((mode>= 0 and ar[pos] > ar[left:right+1].min()) or
             (mode < 0 and ar[pos] < ar[left:right+1].max())):
             peak2 = pos
-            return np.asarray((peak1, peak2))
+    return np.asarray((peak1, peak2))
         
 def wall_points_pix2(img, refsx, sigma):
     """
@@ -368,25 +368,33 @@ def line_to_line(refs):
     
     return np.asarray((dist, dist_err))
 
-def extract_pix(profile, sigma, minaspest, mivesest, mode):
+def extract_pix(mode, profile, sigma, minaspest, mivesest, tiplimits, darktip):
     if mode[0] == 'phc':
-        return extract_pix_phc(profile, sigma, minaspest, mivesest)
+        return extract_pix_phc(profile, sigma, minaspest, mivesest, tiplimits, darktip)
     elif mode[0] == 'dic':
-        return extract_pix_dic(profile, minaspest, mivesest, mode[1])
+        return extract_pix_dic(mode[1], profile, minaspest, mivesest, tiplimits, darktip)
 
-def extract_pix_phc(profile, sigma, minaspest, minvesest):
-    #gradient of gauss-presmoothed image
-#    grad = ndimage.gaussian_gradient_magnitude(profile, sigma)
-    grad = ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
+def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
     # find pipette tip
-    pip = np.argmax(profile[minaspest:minvesest])+minaspest
+#    darktip = False
+    tiplimleft, tiplimright = tiplimits
+    tipprof = profile[tiplimleft:tiplimright]
+    if darktip:
+#        peak1, peak2 = split_two_peaks(tipprof, 1)
+#        pip = np.argmin(tipprof[peak1:peak2])+peak1
+        pip = np.argmin(tipprof)
+    else:
+        pip = np.argmax(tipprof)
+    pip += tiplimleft
+    #gradient of gauss-presmoothed image
+    grad = ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
     #aspirated vesicle edge - pixel rez
     asp = np.argmax(grad[:minaspest])
     #outer vesicle edge - pixel rez
     ves = np.argmax(grad[minvesest:]) + minvesest
     return pip, asp, ves
 
-def extract_pix_dic(profile, minaspest, mivesest, polar):
+def extract_pix_dic(profile, minaspest, mivesest, polar, darktip):
     pip = np.argmax(profile[minaspest:minvesest])+minaspest
     if polar == 'right':
         asp = np.argmax(profile[:minaspest])
@@ -416,30 +424,32 @@ def extract_subpix_dic(profile, pip, asp, ves):
     vesfit = fit_peak(profile, ves)
     return pipfit, aspfit, vesfit
 
-def locate(**kwargs):
+def locate(argsdict):
     '''Extracts features of interest from set of images.
 
     extra_out is a list of dictionaries, with every dictionary corresponds to a single image.
 
     '''
 
-    images = kwargs['images'] #3d numpy array of images (uint8?)
+    images = argsdict['images'] #3d numpy array of images (uint8?)
     
-    mode = kwargs['mode']
+    mode = argsdict['mode']
 
-    sigma = kwargs['sigma'] #int or float parameter for Gauss smoothing of brightness profiles    
+    sigma = argsdict['sigma'] #int or float parameter for Gauss smoothing of brightness profiles    
 
 #    int (over)estimation of the aspirated tip closest to the pipette mouth
 #    int (over)estimation of the outer vesicle edge closest to the pipette mouth
-    minaspest, minvesest = kwargs['aspves']
+    minaspest, minvesest = argsdict['aspves']
+    tiplimits = argsdict['tip']
 
-    subpix = kwargs['subpix'] #Bool, make subpixel resolution or not
-    mismatch = kwargs['mismatch'] #int or float threshold to discard sub-pix resolution 
-    extra = kwargs['extra'] #Boolean, whether to return extra outputs
+    subpix = argsdict['subpix'] #Bool, make subpixel resolution or not
+    mismatch = argsdict['mismatch'] #int or float threshold to discard sub-pix resolution 
+    extra = argsdict['extra'] #Boolean, whether to return extra outputs
 
     refsx = (0, minaspest) #where to measure pipette radius
-    axis = kwargs['axis'] #points on y-values on respective refsx giving estimate of pipette axis
-    pipette = kwargs['pipette'] #tuple of estimates for pipette radius and thickness
+    axis = argsdict['axis'] #points on y-values on respective refsx giving estimate of pipette axis
+    pipette = argsdict['pipette'] #tuple of estimates for pipette radius and thickness
+    darktip = argsdict['darktip'] #whether the pipette tip corresponds to dark or to bright
     imgN = images.shape[0] #total number of images
     metrics = np.empty(imgN) #coefficient arising from not strictly horizontal pipette axis
     metrics_err = np.empty_like(metrics)
@@ -470,7 +480,7 @@ def locate(**kwargs):
         # extract brightness profile along the axis
         metric, metric_err, profile = line_profile(img, (refs[0,:]+refs[1,:])/2., (refs[2,:]+refs[3,:])/2.)
         #find features positions with pixel resolution
-        pip, asp, ves = extract_pix(profile, sigma, minaspest, minvesest, mode)
+        pip, asp, ves = extract_pix(mode, profile, sigma, minaspest, minvesest, tiplimits , darktip)
         pip_err = PIX_ERR
         asp_err = PIX_ERR
         ves_err = PIX_ERR
@@ -485,7 +495,7 @@ def locate(**kwargs):
             extra_img['ves'] = ves
                 
         if subpix:
-            pipfit, aspfit, vesfit = extraxt_subpix(profile, pip, asp, ves, mode)
+            pipfit, aspfit, vesfit = extraxt_subpix(mode, profile, pip, asp, ves)
             if extra:
                 extra_img['walls'] = extra_walls
                 extra_img['pipfit'] = pipfit
