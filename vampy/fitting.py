@@ -32,6 +32,17 @@ class fitcurve():
         self.Dfun = Dfun
         self.lsq_kwargs = lsq_kwargs
     
+    def set_data(self, x,y):
+        self.x = x
+        self.y = y
+    
+    def set_func(self, func, Dfun = None):
+        self.func = func
+        self.Dfun = Dfun
+    
+    def set_init(self, pinit):
+        self.pinit = pinit
+    
     def fit(self):
         """
         Fitting method
