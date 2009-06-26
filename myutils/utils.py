@@ -7,16 +7,21 @@ from scipy import ndimage
 
 def split_to_int(line, dflt=None):
     mesg=None
+    if line == '':
+        return dflt, mesg
     if dflt == None:
         strlst = line.split()
     else:
         Nval = len(dflt)
         strlst = line.split()[0:Nval]
+        if len(strlst) != Nval :
+            mesg = 'Wrong format, using defaults...'
+            return list(dflt), mesg
     try:
         value = map(int, strlst)
     except ValueError:
         value = list(dflt)
-        mesg = 'Wrong format, using defaults...'
+        mesg = 'Values could not be converted, using defaults...'
     return value, mesg
 
 def grid_size(N):
