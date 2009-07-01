@@ -39,11 +39,11 @@ class VampyMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
     def __init__(self, parent):
         wx.MenuBar.__init__(self)
-        for eachMenuData in self.menuData(parent):
+        for eachMenuData in self.MenuData(parent):
             menuLabel, menuItems = eachMenuData
-            self.Append(self.createMenu(menuItems, parent), menuLabel)
+            self.Append(self.CreateMenu(menuItems, parent), menuLabel)
 
-    def menuData(self, parent):
+    def MenuData(self, parent):
         return [["&File", [
                 ("&Open Folder...\tCtrl+O", "Open folder with images", parent.OnOpenFolder),
                 ("", "", ""),
@@ -56,7 +56,7 @@ class VampyMenuBar(wx.MenuBar):
                 ("Reload Math", "Reload all dependencies", parent.OnReloadMath),
                 ("Debug image", " current", parent.OnDebugImage)]]]
 
-    def createMenu(self, menuData, parent):
+    def CreateMenu(self, menuData, parent):
         menu = wx.Menu()
         for eachLabel, eachStatus, eachHandler in menuData:
             if not eachLabel:
@@ -78,19 +78,18 @@ class VampyStatusBar(wx.StatusBar):
             y = evt.ydata
             self.SetStatusText('x = %f, y = %f'%(x, y), 1)
 
-class VampyNavToolbar(NavigationToolbar2WxAgg):
-    def __init__(self, canvas, custombuttons):
+class VampyToolbar(wx.ToolBar):
+    def __init__(self, parent, *buttons):
         """
         
-        @param canvas:
-        @param custombuttons: tuple or list of ((Bitmap, Shortname, Longname, isToggle), Handler)
+        @param buttons: tuple or list of ((Bitmap, shortName, longName, isToggle), Handler)
         """
         
-        NavigationToolbar2WxAgg.__init__(self, canvas)
-        for button in custombuttons:
+        wx.ToolBar.__init__(self, parent)
+        for button in buttons:
             buttonargs, handler = button
             tool = self.AddSimpleTool(-1, *buttonargs)
-            wx.EVT_MENU(self, -1, handler)
+            self.Bind(wx.EVT_MENU, handler, tool)
         
 class VampyPreprocessPanel(wx.Panel):
     '''Sets parameters to preprocess images'''
@@ -258,11 +257,9 @@ class VampyImagePanel(wx.Panel):
         self.canvas.mpl_connect('motion_notify_event', parent.statusbar.SetPosition)
         vsizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-        custombuttons = ((GetResBitmap(SAVETXT_ICON), 'Save Image Info', 'Save image info', False), self.GetParent().OnSave),
-        
-        self.toolbar = VampyNavToolbar(self.canvas, custombuttons)
-        self.toolbar.Realize()
-        vsizer.Add(self.toolbar, 0, wx.ALIGN_LEFT|wx.GROW)
+        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
+        navtoolbar.Realize()
+        vsizer.Add(navtoolbar, 0, wx.ALIGN_LEFT|wx.GROW)
         
         slidersizer = wx.FlexGridSizer(cols=2)
         self.ImgNoTxt = wx.TextCtrl(self, -1, "0", size=(50,20),
@@ -432,8 +429,14 @@ class VampyFrame(wx.Frame):
         
         self.folder = None
         self.OpenedImgs = None
+        self.maintitle = title
+        
         self.menubar = VampyMenuBar(self)
         self.SetMenuBar(self.menubar)
+        
+        self.toolbar = self.MakeToolbar()
+        self.SetToolBar(self.toolbar)        
+        self.toolbar.Realize()
         
         self.statusbar = VampyStatusBar(self)
         self.SetStatusBar(self.statusbar)
@@ -454,7 +457,17 @@ class VampyFrame(wx.Frame):
         self.Fit()
         self.Centre()
         self.SetIcons(GetResIconBundle(FRAME_ICON))
+
+    def MakeToolbar(self):
+        buttons = self.ToolbarData()
+        return VampyToolbar(self, *buttons)
     
+    def ToolbarData(self):
+        return (
+                (GetResBitmap(SAVETXT_ICON), 'Save Image Info', 'Save image info', False),
+                 self.OnSave
+                ),
+         
     def OnOpenFolder(self, evt):
         """
         Open directory of files, load them and initialise GUI
@@ -487,8 +500,6 @@ class VampyFrame(wx.Frame):
             self.OnOpenFolder(evt)
         else:
             self.imgfilenames.sort()
-            if self.folder:
-                del(self.OpenedImgs)
             self.OpenedImgs, imgcfg, msg = self.LoadImages()
             if msg:
                 self.OnError(msg)
@@ -501,16 +512,25 @@ class VampyFrame(wx.Frame):
                 self.imgpanel.Initialize()
                 self.Preprocess(evt)
                 self.imgpanel.SetSlidersPos(imgcfg)
-                title = '%s - %s'%(self.GetTitle(), os.path.split(self.folder)[1])
+                title = '%s - %s'%(self.maintitle, os.path.split(self.folder)[1])
                 self.SetTitle(title)
     
     def LoadImages(self):
+        if self.OpenedImgs != None:
+#            del(self.OpenedImgs)
+            self.OpenedImgs = None
         imgcfgfilename = os.path.join(self.folder, CFG_FILENAME)
         imgcfg = vload.read_conf_file(imgcfgfilename)
         test, mesg = vload.read_grey_image(self.imgfilenames[0])
         if mesg:
             return None, imgcfg, mesg
-        images = empty((len(self.imgfilenames), test.shape[0], test.shape[1]), test.dtype)
+        try:
+            images = empty((len(self.imgfilenames), test.shape[0], test.shape[1]), test.dtype)
+        except MemoryError:
+            mesg = 'Memory Leak. Restart the application.'
+            self.OnError(mesg)
+#            images = None
+            return
         progressdlg = wx.ProgressDialog('Loading images','Loading images',len(self.imgfilenames),
                                         style = wx.PD_AUTO_HIDE|wx.PD_CAN_ABORT|wx.PD_REMAINING_TIME)
         keepLoading = True
@@ -764,6 +784,10 @@ class VampyTensionsFrame(wx.Frame):
         self.statusbar = VampyStatusBar(self)
         self.SetStatusBar(self.statusbar)
         
+        self.toolbar = self.MakeToolbar()
+        self.SetToolBar(self.toolbar)
+        self.toolbar.Realize()
+        
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
@@ -771,10 +795,10 @@ class VampyTensionsFrame(wx.Frame):
         self.axes.set_aspect('auto')
         pansizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-        custombuttons = ((GetResBitmap(SAVETXT_ICON), 'Save Data file', 'Save Data file', False), self.OnSave),
-        self.toolbar = VampyNavToolbar(self.canvas, custombuttons)
-        self.toolbar.Realize()
-        pansizer.Add(self.toolbar, 0, wx.GROW)
+#        custombuttons = ((GetResBitmap(SAVETXT_ICON), 'Save Data file', 'Save Data file', False), self.OnSave),
+        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
+        navtoolbar.Realize()
+        pansizer.Add(navtoolbar, 0, wx.GROW)
         
         self.data = tensiondata
         self.tau, self.tau_err = tensiondata['tension']
@@ -795,7 +819,18 @@ class VampyTensionsFrame(wx.Frame):
         self.SetTitle(title)
         self.Fit()
         self.Draw()
-        
+
+    def MakeToolbar(self):
+        buttons = self.ToolbarData()
+        return VampyToolbar(self, *buttons)
+
+    def ToolbarData(self):
+        return ((
+                (GetResBitmap(SAVETXT_ICON), 'Save Data File', 'Save Data File', False),
+                 self.OnSave
+                ),
+                )
+    
     def OnSlide(self, evt):
         self.Draw()
         evt.Skip()
@@ -867,6 +902,10 @@ class VampyGeometryFrame(wx.Frame):
         self.statusbar = VampyStatusBar(self)
         self.SetStatusBar(self.statusbar)
         
+        self.toolbar = self.MakeToolbar()
+        self.SetToolBar(self.toolbar)
+        self.toolbar.Realize()
+        
         panel = wx.Panel(self, -1)
         pansizer = wx.BoxSizer(wx.VERTICAL)
         self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
@@ -878,8 +917,10 @@ class VampyGeometryFrame(wx.Frame):
                       vesrad='Vesicle Radius',
                       area='Area',
                       vesl='Outer Radius',
-                      volume='Volume')
-        toplot = ['aspl', 'vesrad', 'area', 'vesl']
+                      volume='Volume',
+                      angle = 'Axis angle',
+                      metrics = 'metric')
+        toplot = ['aspl', 'vesl', 'metrics', 'area']
         self.plots = {}
         x = range(1, len(argsdict[toplot[0]][0])+1)
         n,m = utils.grid_size(len(toplot))
@@ -889,18 +930,28 @@ class VampyGeometryFrame(wx.Frame):
             plot = self.figure.add_subplot(n,m,index+1, title = plottitle)
             plot.errorbar(x, y, y_err, fmt='bo-', label=plottitle)
             self.plots[item] = plot
-#        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
-        custombuttons = ((GetResBitmap(SAVETXT_ICON), 'Save Data file', 'Save Data file', False), self.OnSave),
-        self.toolbar = VampyNavToolbar(self.canvas, custombuttons)
+#       
+        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
+        navtoolbar.Realize()
+        pansizer.Add(navtoolbar, 0, wx.GROW)
         
-        self.toolbar.Realize()
-        pansizer.Add(self.toolbar, 0, wx.GROW)
         self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
         title = '%s - %s'%(self.GetTitle(), os.path.split(parent.folder)[1])
         self.SetTitle(title)
         self.canvas.draw()
+    
+    def MakeToolbar(self):
+        buttons = self.ToolbarData()
+        return VampyToolbar(self, *buttons)
+    
+    def ToolbarData(self):
+        return ((
+                (GetResBitmap(SAVETXT_ICON), 'Save Data File', 'Save Dat File', False),
+                 self.OnSave
+                ),
+                )
         
     def OnSave(self, evt):
         savedlg = wx.FileDialog(self, 'Save data', self.GetParent().folder,
@@ -929,9 +980,9 @@ class VampyImageDebugFrame(wx.Frame):
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
         pansizer.Add(self.canvas, 1, wx.GROW)
         
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
-        self.toolbar.Realize()
-        pansizer.Add(self.toolbar, 0, wx.GROW)
+        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
+        navtoolbar.Realize()
+        pansizer.Add(navtoolbar, 0, wx.GROW)
         
         profile = extra_out['profile']
         self.profileplot = self.figure.add_subplot(221, title = 'Axis brightness profile')

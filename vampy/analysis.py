@@ -88,6 +88,12 @@ def get_geometry(argsdict):
     results['area'] = np.asarray((area,area_err))
     results['volume'] = np.asarray((volume,volume_err))
     results['piprad'] = np.asarray((piprad,piprad_err))
+    results['metrics'] = argsdict['metrics']
+    
+    ax_angle = np.arccos(1/metrics)
+    ax_angle_err = metrics_err / (metrics*sqrt(metrics*metrics-1))
+    results['angle'] = np.degrees(np.asarray((ax_angle, ax_angle_err)))
+    
     return results, None
 
 ### model for tension

@@ -276,6 +276,11 @@ def wall_points_subpix(img, refsx, mode):
     return refssub, refs_err, extra_walls
 
 def split_two_peaks(ar, mode):
+    """
+    
+    @param ar:
+    @param mode: >=0 if peaks are maxima, <0 if minima
+    """
     indices = np.argsort(ar)
     if mode >= 0:
         indices = np.flipud(indices)
@@ -287,6 +292,8 @@ def split_two_peaks(ar, mode):
         if ((mode>= 0 and ar[pos] > ar[left:right+1].min()) or
             (mode < 0 and ar[pos] < ar[left:right+1].max())):
             peak2 = pos
+    if peak1 > peak2:
+        peak1, peak2 = peak2, peak1
     return np.asarray((peak1, peak2))
         
 def wall_points_pix2(img, refsx, sigma):
@@ -382,7 +389,8 @@ def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
     if darktip:
 #        peak1, peak2 = split_two_peaks(tipprof, 1)
 #        pip = np.argmin(tipprof[peak1:peak2])+peak1
-        pip = np.argmin(tipprof)
+        peak1, peak2 = split_two_peaks(tipprof, 1)
+        pip = np.argmin(tipprof[peak1:peak2])+peak1
     else:
         pip = np.argmax(tipprof)
     pip += tiplimleft
