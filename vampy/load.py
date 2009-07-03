@@ -35,8 +35,8 @@ def read_conf_file(filename):
     lines = conffile.readlines()
     conffile.close()
     for line in lines:
-        items = line.split(None,1)
-        imgcfg[items[0]] = items[1].rstrip('\n')
+        key, value = line.split(None,1)
+        imgcfg[key] = value.rstrip('\n')
     return imgcfg
 
 def preproc_images(images, orientation, crop):

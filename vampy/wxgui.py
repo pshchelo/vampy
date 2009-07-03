@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """
 wxPython GUI for VAMP project
-TODO: add standard toolbars to frames with outputs 
-TODO: add values export to files to outputs toolbars
 TODO: create (or copy?) a wx.Frame subclass for holding a matplotlib plot,
 probably with the toolbar and status bar
 """
@@ -91,36 +89,60 @@ class VampyToolbar(wx.ToolBar):
             tool = self.AddSimpleTool(-1, *buttonargs)
             self.Bind(wx.EVT_MENU, handler, tool)
         
-class VampyPreprocessPanel(wx.Panel):
-    '''Sets parameters to preprocess images'''
-    def __init__(self, parent, preprocessor):
+class VampyImageConfigPanel(wx.Panel):
+    '''Sets parameters to configure the image properties'''
+    def __init__(self, parent):
         wx.Panel.__init__(self, parent, -1)
         Nsides = len(SIDES)
-        sizer = wx.GridBagSizer()
+        box = wx.StaticBox(self, -1, 'Image Config')
+        boxsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        cropbox = wx.StaticBox(self, -1, 'Croppings')
+        cropboxsizer = wx.StaticBoxSizer(cropbox, wx.VERTICAL)
+        cropsizer = wx.FlexGridSizer(cols=2)
         
         for index,side in enumerate(SIDES):
-            title = wx.StaticText(self, -1, side+'crop:')
+            title = wx.StaticText(self, -1, side)
             cropping = wx.TextCtrl(self, -1, '0', 
                                     style = wx.TE_PROCESS_ENTER,
                                     name = side+'crop', validator = NumValidator('int', min=0))
-            self.Bind(wx.EVT_TEXT_ENTER, preprocessor, cropping)
-            sizer.Add(title, (index,0), (1,1), wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-            sizer.Add(cropping,(index,1),(1,1), wx.ALIGN_LEFT|wx.GROW)
+            self.Bind(wx.EVT_TEXT_ENTER, parent.OnConfigImage, cropping)
+            cropsizer.Add(title, 1, wx.GROW|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
+            cropsizer.Add(cropping, 1, wx.ALIGN_LEFT|wx.GROW)
+        cropsizer.AddGrowableCol(1)
+        cropboxsizer.Add(cropsizer, 1, wx.GROW)
+        boxsizer.Add(cropboxsizer, 1, wx.GROW)
         
-        title = wx.StaticText(self, -1, 'Orientation:')
-        sizer.Add(title, (Nsides,0), (1,1), wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        orient = wx.ComboBox(self,-1, value=SIDES[0], choices=SIDES, name = 'orient', 
-                             style = wx.CB_DROPDOWN|wx.CB_READONLY)
-        self.Bind(wx.EVT_COMBOBOX, preprocessor, orient)
-        sizer.Add(orient, (Nsides,1),(1,1), wx.ALIGN_LEFT|wx.GROW)
+        sizer = wx.FlexGridSizer(cols=2)
+        for value in self.ChoiceParams():
+            paramname, longName, choices = value
+            label = wx.StaticText(self, -1, paramname)
+            chbox = wx.Choice(self, -1, choices=choices, name=paramname)
+            sizer.Add(label, 1, wx.GROW|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
+            sizer.Add(chbox, 1, wx.GROW|wx.ALIGN_LEFT)
+        sizer.AddGrowableCol(0)
+        sizer.AddGrowableCol(1)
+        boxsizer.Add(sizer, 0, wx.GROW)
+        self.Bind(wx.EVT_CHOICE, parent.OnConfigImage, wx.FindWindowByName('orient'))
+        self.Bind(wx.EVT_CHOICE, self.OnModeChoice, wx.FindWindowByName('mode'))
         
-#        savebtn = wx.Button(self, -1, 'Save image info')
-#        self.Bind(wx.EVT_BUTTON, self.OnSave, savebtn)
-#        sizer.Add(savebtn, (Nsides+1,0), (1,2), wx.GROW|wx.ALIGN_CENTER_HORIZONTAL)
-        
-        self.SetSizer(sizer)
+        for boolparam in self.BoolParams():
+            cb = wx.CheckBox(self, -1, boolparam+"?", style=wx.ALIGN_LEFT, name=boolparam)
+            boxsizer.Add(cb, 0, wx.ALIGN_LEFT)
+
+        self.SetSizer(boxsizer)
+        self.Fit()
         for child in self.GetChildren():
             child.Enable(False)
+    
+    def ChoiceParams(self):
+        return (
+                ('orient', 'Pipette orientation', SIDES),
+                ('mode', 'Image mode', ('phc', 'dic')),
+                ('polar', 'DiC polarization', ('left', 'right'))
+                )
+    
+    def BoolParams(self):
+        return ('fromnames', 'darktip')
     
     def Initialize(self, imgcfg):
         for child in self.GetChildren():
@@ -128,11 +150,16 @@ class VampyPreprocessPanel(wx.Panel):
         for side in SIDES:
             cropctrl = wx.FindWindowByName(side+'crop')
             cropctrl.SetValue(str(imgcfg.get(side, 0)))
-        orientctrl = wx.FindWindowByName('orient')
-        orientctrl.SetStringSelection(imgcfg.get('orient', 'left'))
-    
-    def GetOrient(self):
-        return wx.FindWindowByName('orient').GetStringSelection()
+        
+        for value in self.ChoiceParams():
+            paramname, LongName, choices = value
+            ctrl = wx.FindWindowByName(paramname)
+            ctrl.SetStringSelection(imgcfg.get(paramname, choices[0]))
+        self.OnModeChoice(wx.EVT_CHOICE)
+        
+        for boolparam in self.BoolParams():
+            cb = wx.FindWindowByName(boolparam)
+            cb.SetValue(int(imgcfg.get(boolparam, 0)))
     
     def GetCrop(self):
         crops = {}
@@ -142,53 +169,50 @@ class VampyPreprocessPanel(wx.Panel):
             crops[side] = int(crop)
         return crops
     
-#    def OnSave(self, evt):
-#        crops = self.GetCrop()
-#        orient = self.GetOrient()
-#        params = self.GetParent().imgpanel.GetSlidersPos()
-#        lines = []
-#        for key in crops.keys():
-#            lines.append('%s\t%i\n'%(key, crops[key]))
-#        lines.append('%s\t%s\n'%('orient', orient))
-#        for key in params.keys():
-#            line = '%s'%key
-#            line += len(params[key])*'\t%i'%params[key]
-#            line += '\n'
-#            lines.append(line)
-#        
-#        try:
-#            conffile = open(CFG_FILENAME, 'w')
-#        except IOError:
-#            wx.MessageBox('An error occurred while saving crop info', 'Error')
-#            evt.Skip()
-#            return
-#        conffile.writelines(lines)
-#        conffile.close()
-#        wx.MessageBox('Image info saved', 'Info')
-#        evt.Skip()
+    def GetOrient(self):
+        return wx.FindWindowByName('orient').GetStringSelection()
+        
+    def GetChoices(self):
+        params = {}
+        for value in self.ChoiceParams():
+            paramname, longName, choices = value
+            params[paramname] = wx.FindWindowByName(paramname).GetStringSelection() #to convert from unicode
+        return params
+        
+    def GetBools(self):
+        params = {}
+        for boolparam in self.BoolParams():
+            params[boolparam] = wx.FindWindowByName(boolparam).GetValue()
+        return params
+    
+    def GetParams(self):
+        params = self.GetChoices()
+        params.update(self.GetBools())
+        params.update(self.GetCrop())
+        return params
+    
+    def OnModeChoice(self, evt):
+        modectrl = wx.FindWindowByName('mode')
+        polarctrl = wx.FindWindowByName('polar')
+        if modectrl.GetStringSelection() == 'dic':
+            polarctrl.Enable(True)
+        else:
+            polarctrl.Enable(False)
 
-class VampyProcessPanel(wx.Panel):
+class VampyAnalysisPanel(wx.Panel):
     """Shows other parameters needed for starting processing of images."""
-    def __init__(self, parent, id, processor):
+    def __init__(self, parent, id):
         wx.Panel.__init__(self, parent, id)
-        vsizer = wx.BoxSizer(wx.VERTICAL)
+        box = wx.StaticBox(self, -1, 'Analysis Options')
+        vsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         paramsizer = wx.FlexGridSizer(2,2)
         self.numparams = ('sigma','mismatch')
-        self.boolparams = ('subpix','extra', 'fromnames', 'darktip')
+        self.boolparams = ('subpix','extra')
+        
         for param in self.numparams:
             label = wx.StaticText(self, -1, param)
             val = wx.TextCtrl(self, -1, '0', name = param, validator = NumValidator('float', min = 0))
             paramsizer.AddMany([(label,0,0), (val,0,0)])
-        
-        label = wx.StaticText(self, -1, 'mode')
-        val = wx.Choice(self, -1, choices=('phc','dic'), name = 'mode')
-        val.SetSelection(0)
-        paramsizer.AddMany([(label,0,0), (val,0,0)])
-        
-        label = wx.StaticText(self, -1, 'polar')
-        val = wx.Choice(self, -1, choices=('left','right'), name = 'polar')
-        val.SetSelection(0)
-        paramsizer.AddMany([(label,0,0), (val,0,0)])
         
         for param in self.boolparams:
             cb = wx.CheckBox(self, -1, param+"?", style=wx.ALIGN_LEFT, name=param)
@@ -196,33 +220,24 @@ class VampyProcessPanel(wx.Panel):
         
         vsizer.Add(paramsizer)
         
-        btn = wx.Button(self, -1, 'Start')
-        self.Bind(wx.EVT_BUTTON, processor, btn)
+        btn = wx.Button(self, -1, 'Analyse')
+        self.Bind(wx.EVT_BUTTON, parent.OnAnalyse, btn)
         vsizer.Add(btn)
         
         self.SetSizer(vsizer)
         self.Fit()
         self.SetState(False)
-        fromnames = wx.FindWindowByName('fromnames')
-        fromnames.Enable(True)
-        fromnames.SetValue(True)
         
     def Initialize(self):
         self.SetState(True)
         for param in self.numparams:
             ctrl = wx.FindWindowByName(param)
             ctrl.SetValue('3')
-        for param in self.numparams:
-            ctrl = wx.FindWindowByName(param)
             ctrl.Enable(False)
+        ### temporarily disabled, since not well implemented yet
         for cb in self.boolparams:
             ctrl = wx.FindWindowByName(cb)
             ctrl.Enable(False)
-        bool_enabled = ['fromnames', 'darktip']
-        for name in bool_enabled:
-            ctrl = wx.FindWindowByName(name)
-            ctrl.Enable(True)
-            ctrl.SetValue(True)
         
     def SetState(self, state):
         for child in self.GetChildren():
@@ -234,18 +249,13 @@ class VampyProcessPanel(wx.Panel):
             ctrl = wx.FindWindowByName(param)
             params[param] = float(ctrl.GetValue())
         for param in self.boolparams:
-            params[param] = wx.FindWindowByName(param).GetValue()
-        
-        mode = wx.FindWindowByName('mode').GetStringSelection()
-        polar = wx.FindWindowByName('polar').GetStringSelection()
-        params['mode'] = mode, polar
-        
+            params[param] = wx.FindWindowByName(param).GetValue()  
         return params
 
 class VampyImagePanel(wx.Panel):
     '''Shows image and sliders affecting image'''
     def __init__(self, parent, id):
-        wx.Panel.__init__(self, parent, id)
+        wx.Panel.__init__(self, parent, id, style = wx.BORDER_SUNKEN)
         
         self.Imgs = None
         
@@ -447,11 +457,16 @@ class VampyFrame(wx.Frame):
         hsizer.Add(self.imgpanel, 1, wx.GROW)
         
         paramssizer = wx.BoxSizer(wx.VERTICAL)
-        self.preprocpanel = VampyPreprocessPanel(self, self.Preprocess)
-        paramssizer.Add(self.preprocpanel, 1, wx.ALL|wx.GROW)
+
+        self.imgconfpanel = VampyImageConfigPanel(self)
+        paramssizer.Add(self.imgconfpanel, 0, wx.ALL|wx.GROW)
         
-        self.procpanel = VampyProcessPanel(self, -1, self.Process)
-        paramssizer.Add(self.procpanel, 1, wx.ALL|wx.GROW)
+        self.analysispanel = VampyAnalysisPanel(self, -1)
+        paramssizer.Add(self.analysispanel, 0, wx.ALL|wx.GROW)
+        
+        
+        emptypanel = wx.Panel(self, -1)
+        paramssizer.Add(emptypanel, 1, wx.ALL|wx.GROW)
         hsizer.Add(paramssizer, 0, wx.GROW)
         self.SetSizer(hsizer)
         self.Fit()
@@ -463,10 +478,10 @@ class VampyFrame(wx.Frame):
         return VampyToolbar(self, *buttons)
     
     def ToolbarData(self):
-        return (
+        return ((
                 (GetResBitmap(SAVETXT_ICON), 'Save Image Info', 'Save image info', False),
-                 self.OnSave
-                ),
+                 self.OnSave),
+                )
          
     def OnOpenFolder(self, evt):
         """
@@ -505,12 +520,11 @@ class VampyFrame(wx.Frame):
                 self.OnError(msg)
                 self.OnOpenFolder(evt)
             else:
-                self.preprocpanel.Initialize(imgcfg)
-                self.procpanel.Initialize()
+                self.imgconfpanel.Initialize(imgcfg)
+                self.analysispanel.Initialize()
                 self.imgpanel.Imgs = self.OpenedImgs
-#                self.imgpanel.Imgs = self.OpenedImgs.copy()
                 self.imgpanel.Initialize()
-                self.Preprocess(evt)
+                self.OnConfigImage(evt)
                 self.imgpanel.SetSlidersPos(imgcfg)
                 title = '%s - %s'%(self.maintitle, os.path.split(self.folder)[1])
                 self.SetTitle(title)
@@ -560,30 +574,31 @@ class VampyFrame(wx.Frame):
         errDlg.ShowModal()
         errDlg.Destroy()
         
-    def Preprocess(self, evt):
+    def OnConfigImage(self, evt):
         """
         respond to preprocessing parameters
         @param evt: incoming event from caller
         """
-        orient = self.preprocpanel.GetOrient()
-        if self.preprocpanel.Validate():
-            crop = self.preprocpanel.GetCrop()
+        orient = self.imgconfpanel.GetOrient()
+        if self.imgconfpanel.Validate():
+            crop = self.imgconfpanel.GetCrop()
         else:
             return
         self.imgpanel.Imgs = vload.preproc_images(self.OpenedImgs, orient, crop)
         self.imgpanel.SetRanges()
         self.imgpanel.Draw()
         
-    def Process(self, evt):
+    def OnAnalyse(self, evt):
         """
-        starts actual processing of images 
+        starts actual image analysis 
         @param evt: incoming event from caller
         """
-        if self.procpanel.Validate():
-            params = self.procpanel.GetParams()
+        if self.analysispanel.Validate():
+            params = self.analysispanel.GetParams()
         else:
             return
         params.update(self.imgpanel.GetParams())
+        params.update(self.imgconfpanel.GetParams())
         
         ### testing if 'cancel' was pressed somewhere or 
         ### errors when converting from string to float while loading (None is returned)
@@ -640,23 +655,26 @@ class VampyFrame(wx.Frame):
         self.Close()
         
     def OnSave(self, evt):
-        crops = self.preprocpanel.GetCrop()
-        orient = self.preprocpanel.GetOrient()
-        params = self.imgpanel.GetSlidersPos()
+        intparams = self.imgconfpanel.GetCrop()
+        stringparams = self.imgconfpanel.GetChoices()
+        intparams.update(self.imgconfpanel.GetBools())
+        intparams.update(self.imgpanel.GetSlidersPos())
         lines = []
-        for key in crops.keys():
-            lines.append('%s\t%i\n'%(key, crops[key]))
-        lines.append('%s\t%s\n'%('orient', orient))
-        for key in params.keys():
+        for key in stringparams.keys():
+            lines.append('%s\t%s\n'%(key, stringparams[key]))
+        for key in intparams.keys():
             line = '%s'%key
-            line += len(params[key])*'\t%i'%params[key]
+            if type(intparams[key]) in (int, bool):
+                line += '\t%i'%intparams[key]
+            else:
+                line += len(intparams[key])*'\t%i'%intparams[key]
             line += '\n'
             lines.append(line)
             
         try:
             conffile = open(CFG_FILENAME, 'w')
         except IOError:
-            wx.MessageBox('An error occurred while saving crop info', 'Error')
+            wx.MessageBox('An error occurred while saving image info', 'Error')
             evt.Skip()
             return
         conffile.writelines(lines)
@@ -697,12 +715,12 @@ class VampyFrame(wx.Frame):
     def OnDebugImage(self, evt):
         """
         Process only the current image
-        TODO:or set of images?
+        TODO:process set of images?
         and display more additional information on it
         """
         imgNo = self.imgpanel.GetImgNo()
-        if self.procpanel.Validate():
-            params = self.procpanel.GetParams()
+        if self.analysispanel.Validate():
+            params = self.analysispanel.GetParams()
         else:
             return
         params.update(self.imgpanel.GetParams())
@@ -795,7 +813,6 @@ class VampyTensionsFrame(wx.Frame):
         self.axes.set_aspect('auto')
         pansizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-#        custombuttons = ((GetResBitmap(SAVETXT_ICON), 'Save Data file', 'Save Data file', False), self.OnSave),
         navtoolbar = NavigationToolbar2WxAgg(self.canvas)
         navtoolbar.Realize()
         pansizer.Add(navtoolbar, 0, wx.GROW)
@@ -827,8 +844,7 @@ class VampyTensionsFrame(wx.Frame):
     def ToolbarData(self):
         return ((
                 (GetResBitmap(SAVETXT_ICON), 'Save Data File', 'Save Data File', False),
-                 self.OnSave
-                ),
+                 self.OnSave),
                 )
     
     def OnSlide(self, evt):
@@ -949,8 +965,7 @@ class VampyGeometryFrame(wx.Frame):
     def ToolbarData(self):
         return ((
                 (GetResBitmap(SAVETXT_ICON), 'Save Data File', 'Save Dat File', False),
-                 self.OnSave
-                ),
+                 self.OnSave),
                 )
         
     def OnSave(self, evt):

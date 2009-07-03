@@ -441,7 +441,7 @@ def locate(argsdict):
 
     images = argsdict['images'] #3d numpy array of images (uint8?)
     
-    mode = argsdict['mode']
+    mode = argsdict['mode'], argsdict['polar']
 
     sigma = argsdict['sigma'] #int or float parameter for Gauss smoothing of brightness profiles    
 
