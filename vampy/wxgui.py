@@ -22,16 +22,15 @@ import analysis as vanalys
 import fitting as vfit
 import output as vout
 
-from myutils.wxutils import NumValidator, rgba_wx2mplt, DoubleSlider, GetResIconBundle, GetResBitmap
+from myutils.wxutils import NumValidator, rgba_wx2mplt, DoubleSlider, CustomArtProvider#, RegisterCustomArt
 from myutils import utils
+from myutils import id as resid
 
 SIDES = ['left','right','top','bottom']
 DATWILDCARD = "Data files (TXT, CSV, DAT)|*.txt;*.TXT;*.csv;*.CSV;*.dat;*.DAT | All files (*.*)|*.*"
 DEFAULT_SCALE = '0.3225'  # micrometer/pixel, Teli CS3960DCL, 20x overall magnification
 DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
 CFG_FILENAME = 'vampy.cfg'
-FRAME_ICON = 'wxpython-multi.ico'
-SAVETXT_ICON = 'savetxt24.png'
 
 class VampyMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
@@ -88,7 +87,7 @@ class VampyToolbar(wx.ToolBar):
             buttonargs, handler = button
             tool = self.AddSimpleTool(-1, *buttonargs)
             self.Bind(wx.EVT_MENU, handler, tool)
-        
+    
 class VampyImageConfigPanel(wx.Panel):
     '''Sets parameters to configure the image properties'''
     def __init__(self, parent):
@@ -436,6 +435,8 @@ class VampyFrame(wx.Frame):
     '''wxPython VAMP frontend'''
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title)
+        customartprovider = CustomArtProvider()
+        wx.ArtProvider.Push(customartprovider)
         
         self.folder = None
         self.OpenedImgs = None
@@ -464,22 +465,29 @@ class VampyFrame(wx.Frame):
         self.analysispanel = VampyAnalysisPanel(self, -1)
         paramssizer.Add(self.analysispanel, 0, wx.ALL|wx.GROW)
         
-        
         emptypanel = wx.Panel(self, -1)
         paramssizer.Add(emptypanel, 1, wx.ALL|wx.GROW)
         hsizer.Add(paramssizer, 0, wx.GROW)
         self.SetSizer(hsizer)
         self.Fit()
         self.Centre()
-        self.SetIcons(GetResIconBundle(FRAME_ICON))
-
+        
+        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
+        
+    def SetFrameIcons(self, artid, sizes):
+        ib = wx.IconBundle()
+        for size in sizes:
+            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
+        self.SetIcons(ib)
+    
     def MakeToolbar(self):
         buttons = self.ToolbarData()
         return VampyToolbar(self, *buttons)
     
     def ToolbarData(self):
+        bmpsavetxt = wx.ArtProvider.GetBitmap(resid.SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
-                (GetResBitmap(SAVETXT_ICON), 'Save Image Info', 'Save image info', False),
+                (bmpsavetxt, 'Save Image Info', 'Save image info', False),
                  self.OnSave),
                 )
          
@@ -831,19 +839,26 @@ class VampyTensionsFrame(wx.Frame):
         panel.SetSizer(pansizer)
         
         panel.Fit()
-        self.SetIcons(GetResIconBundle(FRAME_ICON))
         title = '%s - %s'%(self.GetTitle(), os.path.split(parent.folder)[1])
         self.SetTitle(title)
+        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
         self.Fit()
         self.Draw()
-
+        
+    def SetFrameIcons(self, artid, sizes):
+        ib = wx.IconBundle()
+        for size in sizes:
+            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
+        self.SetIcons(ib)
+        
     def MakeToolbar(self):
         buttons = self.ToolbarData()
         return VampyToolbar(self, *buttons)
 
     def ToolbarData(self):
+        bmpsavetxt = wx.ArtProvider.GetBitmap(resid.SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
-                (GetResBitmap(SAVETXT_ICON), 'Save Data File', 'Save Data File', False),
+                (bmpsavetxt, 'Save Data File', 'Save Data File', False),
                  self.OnSave),
                 )
     
@@ -951,20 +966,27 @@ class VampyGeometryFrame(wx.Frame):
         navtoolbar.Realize()
         pansizer.Add(navtoolbar, 0, wx.GROW)
         
-        self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
         title = '%s - %s'%(self.GetTitle(), os.path.split(parent.folder)[1])
         self.SetTitle(title)
+        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
         self.canvas.draw()
     
+    def SetFrameIcons(self, artid, sizes):
+        ib = wx.IconBundle()
+        for size in sizes:
+            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
+        self.SetIcons(ib)
+        
     def MakeToolbar(self):
         buttons = self.ToolbarData()
         return VampyToolbar(self, *buttons)
     
     def ToolbarData(self):
+        bmpsavetxt = wx.ArtProvider.GetBitmap(resid.SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
-                (GetResBitmap(SAVETXT_ICON), 'Save Data File', 'Save Dat File', False),
+                (bmpsavetxt, 'Save Data File', 'Save Dat File', False),
                  self.OnSave),
                 )
         
@@ -1028,12 +1050,19 @@ class VampyImageDebugFrame(wx.Frame):
 #        self.gradpipprofile2 = self.figure.add_subplot(326, title = 'Right pipette section gradient')
 #        self.gradpipprofile2.plot(utils.get_gradient(pipprofile2, 3))
 #        
-        self.SetIcons(GetResIconBundle(FRAME_ICON))
         panel.SetSizer(pansizer)
         panel.Fit()
         title = '%s - %s - Image %i'%(self.GetTitle(), os.path.split(parent.folder)[1], parent.imgpanel.GetImgNo())
         self.SetTitle(title)
+        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
         self.canvas.draw()
+        
+    def SetFrameIcons(self, artid, sizes):
+        ib = wx.IconBundle()
+        for size in sizes:
+            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
+        self.SetIcons(ib)
     
 if __name__ == "__main__":
     print __doc__
+    wx.ART
