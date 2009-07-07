@@ -534,7 +534,9 @@ class VampyFrame(wx.Frame):
                 self.imgpanel.Initialize()
                 self.OnConfigImage(evt)
                 self.imgpanel.SetSlidersPos(imgcfg)
-                title = '%s - %s'%(self.maintitle, os.path.split(self.folder)[1])
+                upperdir, self.imagedir = os.path.split(self.folder)
+                dir, self.imagedate = os.path.split(upperdir)
+                title = '%s : %s - %s'%(self.imagedate, self.imagedir, self.maintitle)
                 self.SetTitle(title)
     
     def LoadImages(self):
@@ -732,6 +734,7 @@ class VampyFrame(wx.Frame):
         else:
             return
         params.update(self.imgpanel.GetParams())
+        params.update(self.imgconfpanel.GetParams())
         img = params['images'][imgNo-1]
         params['images'] = img.reshape(1, img.shape[0], img.shape[1])
         params['extra'] = True
@@ -839,7 +842,7 @@ class VampyTensionsFrame(wx.Frame):
         panel.SetSizer(pansizer)
         
         panel.Fit()
-        title = '%s - %s'%(self.GetTitle(), os.path.split(parent.folder)[1])
+        title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
         self.SetTitle(title)
         self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
         self.Fit()
@@ -968,7 +971,7 @@ class VampyGeometryFrame(wx.Frame):
         
         panel.SetSizer(pansizer)
         panel.Fit()
-        title = '%s - %s'%(self.GetTitle(), os.path.split(parent.folder)[1])
+        title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
         self.SetTitle(title)
         self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
         self.canvas.draw()
@@ -1052,7 +1055,7 @@ class VampyImageDebugFrame(wx.Frame):
 #        
         panel.SetSizer(pansizer)
         panel.Fit()
-        title = '%s - %s - Image %i'%(self.GetTitle(), os.path.split(parent.folder)[1], parent.imgpanel.GetImgNo())
+        title = '%s : %s - Image %s - %s'%(parent.imagedate, parent.imagedir, parent.imgpanel.GetImgNo(), self.GetTitle())
         self.SetTitle(title)
         self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
         self.canvas.draw()
