@@ -55,151 +55,6 @@ def line_profile(img, point1, point2):
     #output interpolated values at points of profile and profile metric
     return metric, metric_err, ndimage.map_coordinates(img, [y, x], output = float)
 
-def jumps_pos_steep(ar, nJumps):
-    '''Finds nJumps steepest jumps (of width 1) in equidistant(=1) 1D array'''
-    jumps = np.zeros((2, nJumps))
-    for i in range(0, ar.size - 2):
-        jump = np.fabs(ar[i] - ar[i+1])
-        if jump > min(jumps[1, :]):
-            jumps[:, np.argmin(jumps[1, :])] = np.asarray((i, jump))
-    return np.sort(jumps[0, :].astype(int))
-
-def find_peak(ar, centerest):
-    '''Fits a peak to equidistant (=1) 1D data.'''
-    # find whether the peak is min or max
-    found = False
-    ctry = centerest
-    while not found:
-        if ar[ctry] == min(ar[ctry-1:ctry+2]):
-            sgn = -1 # peak is a local minimum
-            found = True
-        elif ar[ctry] == max(ar[ctry-1:ctry+2]):
-            sgn = 1 # peak is a local maximum
-            found = True
-        elif ar[ctry] == ar[ctry-1] and ar[ctry] == ar[ctry+1]:
-            ctry += 1
-    # find left and right ends of the peak
-    left = centerest
-    while ar[left] * sgn >= ar[left-1] * sgn:
-        left -= 1
-    right = centerest
-    while ar[right] * sgn >= ar[right+1] * sgn:
-        right += 1
-    # shorten the peak (delete the highest side)
-    y = ar[left:right+1]
-    m = sgn * max(sgn * y[0], y[-1] * sgn)
-    condition = (y * sgn >= sgn * m)
-    y = np.compress(condition, y)
-    # find the shift introduced by previous steps
-    if ar[left] == y[0]:
-        shift = left
-    elif ar[right] == y[-1]:
-        shift = right - y.size
-    # make peak more symmetric
-    lim = min(centerest - shift, y.size - 1 - (centerest - shift))
-    # assure that there are at least 5 points to fit
-    # that is minimum for gaussian fit with 4 fitting parameters
-    if lim <= 1:
-        lim = 2
-    # fit the shortened and symmetrized peak
-    fit = vfit.fit_gauss(ar[centerest-lim:centerest+lim+1], sgn)
-    # shift the peak center back to initial coordinates
-    fit[0][2] += centerest - lim
-    return fit
-
-def wall_points_phc(img, refsx, sigma, extra):
-    '''Get 4 reference points with coordinates on pipette walls
-    for Phase Contrast images
-    (walls are inner inflection points of inner minima on the profile)
-    '''
-    extra_walls = []
-    refs = np.array([])
-    refs_err = np.array([])
-    for refx in refsx:
-        if extra:
-            extra_wall = {}
-        jumps = jumps_pos_steep(
-                ndimage.gaussian_laplace(img[:, refx], sigma).astype(float), 8)
-        y = img[:, refx]
-
-        fit = fit_peak(y, jumps[1] + np.argmin(y[jumps[1]:jumps[2]]))
-        a, b, x0, s = fit[0]
-        refs = np.append(refs, np.asarray((x0 + s, refx)), axis = 1)
-        #taking err_x0+err_s while ref = x0+s
-        refs_err = np.append(refs_err, sum(sqrt(np.diag(fit[1])[2:])))
-        if extra:
-            extra_wall['fit1'] = fit[0]
-
-        fit = fit_peak(y, jumps[5] + np.argmin(y[jumps[5]:jumps[6]]))
-        a, b, x0, s = fit[0]
-        refs = np.append(refs, np.asarray((x0 - s, refx)), axis = 1)
-        refs_err = np.append(refs_err, sum(sqrt(np.diag(fit[1])[2:])))
-        if extra:
-            extra_wall['fit2'] = fit[0]
-            extra_wall['profile'] = y
-            extra_walls.append(extra_wall)
-    return refs.reshape(4, 2), refs_err, extra_walls
-
-def max_edges(ar):
-    '''
-    Finds leftmost and rightmost indices of clipped elements in an array
-    @param ar: array which is clipped by some value (has max plateaus)
-    '''
-    ind = np.argsort(ar) # ascending indices of an array 
-    condition = (ar[ind] == ar.max()) #condition for clipped values
-    ind = np.compress(condition, ind) # leave only those where condition is met
-    return ind.min(), ind.max()
-
-def wall_points_phc_2(img, refsx, mismatch, extra):
-    ''''''
-    extra_walls = []
-    refs = np.array([])
-    refs_err = np.array([])
-    for refx in refsx:
-#        print refx
-        if extra:
-            extra_wall = {}
-        y = img[:, refx]
-
-        edgel, edger = max_edges(y)
-        middle = int((edgel + edger) * 0.5)
-
-        edgel1, edger1 = max_edges(y[edgel:middle])
-        shift = edgel
-        centerest = shift+edgel1+np.argmin(y[shift+edgel1:shift+edger1+1])
-        fit = fit_peak(y, centerest)
-        err = fiterr(fit)
-        if (fit[-1] != 1) or (err == None) or (sum(err[2:]) >= mismatch):
-            refs = np.append(refs, np.asarray((centerest, refx)), axis = 1)
-            refs_err = np.append(refs_err, 1)
-            print 'Pipette wall 1: No subpix rez'
-        else:
-            a, b, x0, s = fit[0]
-            refs = np.append(refs, np.asarray((x0 + s, refx)), axis = 1)
-            #taking err_x0+err_s while ref = x0+s
-            refs_err = np.append(refs_err, sum(err[2:]))
-        if extra:
-            extra_wall['fit1'] = fit
-
-        edgel2, edger2 = max_edges(y[middle:edger+1])
-        shift = middle
-        centerest = shift+edgel2+np.argmin(y[shift+edgel2:shift+edger2+1])
-        fit = fit_peak(y, centerest)
-        err = fiterr(fit)
-        if (fit[-1] != 1) or (err == None) or (sum(err[2:]) >= mismatch):
-            refs = np.append(refs, np.asarray((centerest, refx)), axis = 1)
-            refs_err = np.append(refs_err, 1)
-            print 'Pipette wall 2: No subpix rez'
-        else:
-            a, b, x0, s = fit[0]
-            refs = np.append(refs, np.asarray((x0 - s, refx)), axis = 1)
-            refs_err = np.append(refs_err, sum(err[2:]))
-        if extra:
-            extra_wall['fit2'] = fit
-            extra_wall['profile'] = y
-            extra_walls.append(extra_wall)
-    return refs.reshape(4, 2), refs_err, extra_walls
-
 def point_to_line_dist(point, point1, point2):
     '''Point to line distance.
     Finds distance (unsigned) from point to line defined by 2 points
@@ -221,56 +76,6 @@ def point_to_line_dist(point, point1, point2):
     dist_err = sqrt(k*k*dx0*dx0 + dk*dk*x0*x0 + db*db + dy0*dy0 + 
                     k*k*dk*dk*(k*x0+b-y0)**2/(1+k*k))/(1+k*k)
     return np.asarray((np.fabs(dist), dist_err))
-
-def find_edge(ar, centerest):
-    '''Fits a steep change in 1D data with some suitable function'''
-    sgn = np.sign(ar[centerest+1] - ar[centerest-1])
-
-    #max and min are positions of local maximum and minimum
-    #in direct vicinity of centerset
-    max = centerest
-    while ar[max] <= ar[max+sgn]:
-        max += sgn
-    min = centerest
-    while ar[min] >= ar[min-sgn]:
-        min -= sgn
-
-    if sgn < 0:
-        min, max = max, min
-    #now min and max are just limiting the piece of line to fit
-    fit = vfit.fit_si(ar[min-1:max+2], centerest - min + 1)
-
-    #shift the inflection point back to initial coordinates
-    fit[0][2] += min - 1
-    return fit
-
-def wall_points_pix(img, refsx):
-    '''
-    Find reference points on the pipette for PhC image with pixel resolution
-    FIXME: Is it the same for both PhC and DiC types of images???
-    @param img: array representing the image
-    @param refsx: tuple of points where to make a cross-profile to find walls of the pipette
-    '''
-    #FIXME: BAD - relies heavily on clipped values of brightness corresponding to pipette cross-section 
-    refs = np.array([])
-    for refx in refsx:
-#        print refx
-        y = img[:, refx]
-
-        edgel, edger = max_edges(y)
-        middle = int((edgel + edger) * 0.5)
-
-        edgel1, edger1 = max_edges(y[edgel:middle])
-        shift = edgel
-        centerest = shift+edgel1+np.argmin(y[shift+edgel1:shift+edger1+1])
-        refs = np.append(refs, np.asarray(((centerest, refx),(PIX_ERR, 0))))
-        
-        edgel2, edger2 = max_edges(y[middle:edger+1])
-        shift = middle
-        centerest = shift+edgel2+np.argmin(y[shift+edgel2:shift+edger2+1])
-        refs = np.append(refs, np.asarray(((centerest, refx),(PIX_ERR, 0))))
-    
-    return refs.reshape(-1,2,2)
 
 def wall_points_subpix(img, refsx, mode):
     return refssub, refs_err, extra_walls
@@ -295,50 +100,8 @@ def split_two_peaks(ar, mode):
     if peak1 > peak2:
         peak1, peak2 = peak2, peak1
     return np.asarray((peak1, peak2))
-        
-def wall_points_pix2(img, refsx, sigma):
-    """
     
-    @param img:
-    @param refsx:
-    """
-    N = 2  # number of walls to find
-    refs = np.array([])
-    for refx in refsx:
-        prof = img[:,refx]
-        gradprof = ndimage.gaussian_gradient_magnitude(prof, sigma)
-        start, end = split_two_peaks(gradprof, 1)
-        if start > end:
-            start, end = end, start
-        refy = split_two_peaks(prof[start:end], -1)+start
-        dref = np.asarray([PIX_ERR, 0])
-        rx = np.tile(refx,N)
-        xy = np.column_stack((refy,rx))#.flatten()
-        drefe = np.repeat(np.expand_dims(dref,0), N, 0)
-        ref = np.concatenate((xy,drefe),1)
-        refs = np.append(refs, ref)
-    return refs.reshape(-1,2,2)
-
-def wall_points_pix3(img, refsx, axisy, sigma):
-    N=2
-    refs = np.array([])
-    axisy = np.array([113,115])
-    for i,refx in enumerate(refsx):
-        prof = img[:,refx]
-        mid = axisy[i]
-#        mid = len(prof)/2
-        filtered = ndimage.gaussian_gradient_magnitude(ndimage.sobel(prof), sigma)
-        
-        refy = np.asarray((np.argmax(filtered[:mid]), np.argmax(filtered[mid:])+mid))
-        dref = np.asarray([PIX_ERR, 0])
-        rx = np.tile(refx,N)
-        xy = np.column_stack((refy,rx))#.flatten()
-        drefe = np.repeat(np.expand_dims(dref,0), N, 0)
-        ref = np.concatenate((xy,drefe),1)
-        refs = np.append(refs, ref)
-    return refs.reshape(-1,2,2)
-    
-def wall_points_pix4(img, refsx, axis, pipette):
+def wall_points_pix(img, refsx, axis, pipette):
     piprad, pipthick = pipette
     N=2
     refs = np.array([])
@@ -376,19 +139,38 @@ def line_to_line(refs):
     return np.asarray((dist, dist_err))
 
 def extract_pix(mode, profile, sigma, minaspest, mivesest, tiplimits, darktip):
-    if mode[0] == 'phc':
+    """
+    Extract positions of pipette tip, aspirated vesicle tip and outer vesicle edge
+    with pixel resolution.
+    @param mode: 2-tuple of strings of image type and additional type parameter
+    @param profile: actual 1D data array to process
+    @param sigma: pre-smoothing parameter for various filters
+    @param minaspest: rightmost overestimated position of aspirated tip
+    @param minvesest: leftmost overestimated position of outer vesicle edge
+    @param tiplimits: range where to look for a pipette tip
+    @param darktip: bool, true if the pipette tip is a local minimum, False if it is a maximum
+    """
+    imgtype, polar = mode
+    if imgtype == 'phc':
         return extract_pix_phc(profile, sigma, minaspest, mivesest, tiplimits, darktip)
-    elif mode[0] == 'dic':
-        return extract_pix_dic(mode[1], profile, minaspest, mivesest, tiplimits, darktip)
+    elif imgtype == 'dic':
+        return extract_pix_dic(polar, profile, minaspest, mivesest, tiplimits, darktip)
 
 def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
+    """
+    Extract positions of pipette tip, aspirated vesicle tip and outer vesicle edge
+    for Phase Contrast images with pixel resolution.
+    @param profile: actual 1D data array to process
+    @param sigma: pre-smoothing parameter for various filters
+    @param minaspest: rightmost overestimated position of aspirated tip
+    @param minvesest: leftmost overestimated position of outer vesicle edge
+    @param tiplimits: range where to look for a pipette tip
+    @param darktip: bool, true if the pipette tip is a local minimum, False if it is a maximum
+    """
     # find pipette tip
-#    darktip = False
     tiplimleft, tiplimright = tiplimits
     tipprof = profile[tiplimleft:tiplimright]
     if darktip:
-#        peak1, peak2 = split_two_peaks(tipprof, 1)
-#        pip = np.argmin(tipprof[peak1:peak2])+peak1
         peak1, peak2 = split_two_peaks(tipprof, 1)
         pip = np.argmin(tipprof[peak1:peak2])+peak1
     else:
@@ -402,7 +184,7 @@ def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
     ves = np.argmax(grad[minvesest:]) + minvesest
     return pip, asp, ves
 
-def extract_pix_dic(profile, minaspest, mivesest, polar, darktip):
+def extract_pix_dic(polar, profile, minaspest, mivesest, tiplimits, darktip):
     pip = np.argmax(profile[minaspest:minvesest])+minaspest
     if polar == 'right':
         asp = np.argmax(profile[:minaspest])
@@ -413,10 +195,11 @@ def extract_pix_dic(profile, minaspest, mivesest, polar, darktip):
     return pip, asp, ves
 
 def extract_subpix(profile, pip, asp, ves, mode):
-    if mode[0] == 'phc':
+    imgtype, polar = mode
+    if imgtype == 'phc':
         return extract_subpix_phc(profile, pip, asp, ves)
-    elif mode[0] == 'dic':
-        return extract_subpix_dic(profile, pip, asp, ves)
+    elif imgtype == 'dic':
+        return extract_subpix_dic(profile, pip, asp, ves, polar)
 
 #TODO: more accurate subpix code for phase contrast
 def extract_subpix_phc(profile, pip, asp, ves):
@@ -426,7 +209,7 @@ def extract_subpix_phc(profile, pip, asp, ves):
     return pipfit, aspfit, vesfit
 
 #TODO: more accurate subpix code for DIC
-def extract_subpix_dic(profile, pip, asp, ves):
+def extract_subpix_dic(profile, pip, asp, ves, polar):
     pipfit = fit_peak(profile, pip)
     aspfit = fit_peak(profile, asp)
     vesfit = fit_peak(profile, ves)
@@ -477,9 +260,7 @@ def locate(argsdict):
 #        print "Using Image %02i"%(imgindex+1)
 
         #reference points on pipette walls (with respective errors)
-#        refs = wall_points_pix2(img, refsx, sigma)
-#        refs = wall_points_pix3(img, refsx, None, sigma)
-        refs = wall_points_pix4(img, refsx, axis, pipette)
+        refs = wall_points_pix(img, refsx, axis, pipette)
         if subpix:
             refs, refs_err, extra_walls = wall_points_subpix(img, refs, mode)
         #pipette radius
