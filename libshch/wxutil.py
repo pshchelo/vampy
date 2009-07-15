@@ -9,27 +9,79 @@ Provides following objects:
     NumValidator - validator instance suitable for integers or floats;
     ValidTextEntryDialog - similar to wx.TextEntryDialog but allows a custom validator to be attached
     DoubleSlider - panel with two sliders to visually set 2 values
-    CustomArtProvider - ArtProvider using resources pointed in id.py module
+    CustomArtProvider - ArtProvider using resources pointed in libshch package
     FileListDropTarget - helper class to allow file drop in wx.ListBox
     GatherFilesPanel - Panel that displays a list of files and allows adding and removing files or groups of files
 """
 
 import wx
 import os
-import id
+import libshch
+
+class SimpleMenuBar(wx.MenuBar):
+    '''Menu Bar for wxPython VAMP front-end'''
+    def __init__(self, parent, menudata):
+        """
+        
+        @param parent:
+        @param menudata: nested list [[top menu item, [(menu item title, hint, handler), ...]], ...]
+        """
+        wx.MenuBar.__init__(self)
+        for eachMenuData in menudata:
+            menuLabel, menuItems = eachMenuData
+            self.Append(self.CreateMenu(menuItems, parent), menuLabel)
+
+    def CreateMenu(self, menuData, parent):
+        menu = wx.Menu()
+        for eachLabel, eachStatus, eachHandler in menuData:
+            if not eachLabel:
+                menu.AppendSeparator()
+                continue
+            menuItem = menu.Append(-1, eachLabel, eachStatus)
+            parent.Bind(wx.EVT_MENU, eachHandler, menuItem)
+        return menu
+
+class PlotStatusBar(wx.StatusBar):
+    '''Status Bar for wxPython VAMP frontend'''
+    def __init__(self, parent):
+        wx.StatusBar.__init__(self, parent)
+        self.SetFieldsCount(2)
+        
+    def SetPosition(self, evt):
+        """
+        Set status bar text to current coordinates on the matplotlib plot/subplot
+        @param evt: must be a matplotlib's motion_notify_event
+        """
+        if evt.inaxes:
+            x = evt.xdata
+            y = evt.ydata
+            self.SetStatusText('x = %f, y = %f'%(x, y), 1)
+
+class SimpleToolbar(wx.ToolBar):
+    def __init__(self, parent, *buttons):
+        """
+        
+        @param buttons: tuple or list of ((Bitmap, shortName, longName, isToggle), Handler)
+        """
+        
+        wx.ToolBar.__init__(self, parent)
+        for button in buttons:
+            buttonargs, handler = button
+            tool = self.AddSimpleTool(-1, *buttonargs)
+            self.Bind(wx.EVT_MENU, handler, tool)
 
 class CustomArtProvider(wx.ArtProvider):
     def __init__(self):
         wx.ArtProvider.__init__(self)
         
     def CreateBitmap(self, artid, client, size):
-        if artid in id.CUSTOMART:
+        if artid in libshch.CUSTOMART:
             image = wx.Image(artid, wx.BITMAP_TYPE_ANY)
             bmp = wx.BitmapFromImage(image)
             return bmp
     
     def CreateIcon(self, artid, client, size):
-        if artid in id.CUSTOMART:
+        if artid in libshch.CUSTOMART:
             return wx.Icon(artid, wx.BITMAP_TYPE_ICO)
 
 def rgba_wx2mplt(wxcolour):
