@@ -1,109 +1,84 @@
 #!/usr/bin/env python
-"""
-wxPython GUI for VAMP project
-TODO: create (or copy?) a wx.Frame subclass for holding a matplotlib plot,
-probably with the toolbar and status bar
-"""
-import glob, sys, os
-OWNPATH = os.path.dirname(sys.argv[0])
+'''Top frame of the VamPy application
+'''
+import glob, os
 
 import wx
 
-from numpy import pi, log, empty
+from numpy import empty
+
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-import load as vload
-import features as vfeat
-import analysis as vanalys
-import fitting as vfit
-import output as vout
+import vampy
+from vampy import analysis, features, load
 
-from myutils.wxutils import NumValidator, rgba_wx2mplt, DoubleSlider, CustomArtProvider#, RegisterCustomArt
-from myutils import utils
-from myutils import id as resid
+import tension, debug, geometry
 
-SIDES = ['left','right','top','bottom']
-DATWILDCARD = "Data files (TXT, CSV, DAT)|*.txt;*.TXT;*.csv;*.CSV;*.dat;*.DAT | All files (*.*)|*.*"
-DEFAULT_SCALE = '0.3225'  # micrometer/pixel, Teli CS3960DCL, 20x overall magnification
-DEFAULT_PRESSACC = '0.00981'  # 1 micrometer of water stack
-CFG_FILENAME = 'vampy.cfg'
+import libshch
+from libshch import wxutil, util
 
-class VampyMenuBar(wx.MenuBar):
-    '''Menu Bar for wxPython VAMP front-end'''
-    def __init__(self, parent):
-        wx.MenuBar.__init__(self)
-        for eachMenuData in self.MenuData(parent):
-            menuLabel, menuItems = eachMenuData
-            self.Append(self.CreateMenu(menuItems, parent), menuLabel)
-
-    def MenuData(self, parent):
-        return [["&File", [
-                ("&Open Folder...\tCtrl+O", "Open folder with images", parent.OnOpenFolder),
-                ("", "", ""),
-                ("&Exit", "Exit application", parent.OnExit)]],
-                ["&Help", [
-                ("&Help", "Display help", parent.OnHelp),
-                ("&About...", "Show info about application", parent.OnAbout)]],
-                ["Debug", [
-                ("Reload GUI (careful!)", "Reload User Interface", parent.OnReloadGUI),
-                ("Reload Math", "Reload all dependencies", parent.OnReloadMath),
-                ("Debug image", " current", parent.OnDebugImage)]]]
-
-    def CreateMenu(self, menuData, parent):
-        menu = wx.Menu()
-        for eachLabel, eachStatus, eachHandler in menuData:
-            if not eachLabel:
-                menu.AppendSeparator()
-                continue
-            menuItem = menu.Append(-1, eachLabel, eachStatus)
-            parent.Bind(wx.EVT_MENU, eachHandler, menuItem)
-        return menu
-
-class VampyStatusBar(wx.StatusBar):
-    '''Status Bar for wxPython VAMP frontend'''
-    def __init__(self, parent):
-        wx.StatusBar.__init__(self, parent)
-        self.SetFieldsCount(2)
+class VampyOtherUserDataDialog(wx.Dialog):
+    """
+    Dialog to collect additional data from user
+    """
+    def __init__(self, parent, id):
+        wx.Dialog.__init__(self, parent, id, 'Additional Parameters:')
         
-    def SetPosition(self, evt):
-        if evt.inaxes:
-            x = evt.xdata
-            y = evt.ydata
-            self.SetStatusText('x = %f, y = %f'%(x, y), 1)
-
-class VampyToolbar(wx.ToolBar):
-    def __init__(self, parent, *buttons):
-        """
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        self.stagerb=wx.RadioBox(self, -1, 'Stage No.', choices = ['1','2'], majorDimension=2)
+        vsizer.Add(self.stagerb, 1, wx.GROW)
         
-        @param buttons: tuple or list of ((Bitmap, shortName, longName, isToggle), Handler)
-        """
+        flsz = wx.FlexGridSizer(-1,2)
+        label = wx.StaticText(self, -1, 'Scale (um/pixel)')
+        flsz.Add(label, 1)
+        self.scale = wx.TextCtrl(self, -1, '%s'%vampy.DEFAULT_SCALE, validator = wxutil.NumValidator('float', min=0))
+        flsz.Add(self.scale,1)
         
-        wx.ToolBar.__init__(self, parent)
-        for button in buttons:
-            buttonargs, handler = button
-            tool = self.AddSimpleTool(-1, *buttonargs)
-            self.Bind(wx.EVT_MENU, handler, tool)
+        label = wx.StaticText(self, -1, 'Pressure Accuracy (Pa)')
+        flsz.Add(label)
+        self.pressacc = wx.TextCtrl(self, -1, '%s'%vampy.DEFAULT_PRESSACC, validator = wxutil.NumValidator('float', min=0))
+        flsz.Add(self.pressacc)
+        
+        vsizer.Add(flsz)
+        btnbox = wx.StdDialogButtonSizer()
+        okBtn = wx.Button(self, wx.ID_OK, 'OK')
+        okBtn.SetDefault()
+        closeBtn = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        btnbox.AddButton(okBtn)
+        btnbox.AddButton(closeBtn)
+        btnbox.Realize()
+        
+        vsizer.Add(btnbox)
+        
+        self.SetSizer(vsizer)
+        self.Layout()
+        self.Fit()
     
+    def GetData(self):
+        scale = float(self.scale.GetValue())
+        pressacc = float(self.pressacc.GetValue())
+        stage = self.stagerb.GetSelection()        
+        return stage, scale, pressacc
+
 class VampyImageConfigPanel(wx.Panel):
     '''Sets parameters to configure the image properties'''
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, -1)
-        Nsides = len(SIDES)
         box = wx.StaticBox(self, -1, 'Image Config')
         boxsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         cropbox = wx.StaticBox(self, -1, 'Croppings')
         cropboxsizer = wx.StaticBoxSizer(cropbox, wx.VERTICAL)
         cropsizer = wx.FlexGridSizer(cols=2)
         
-        for index,side in enumerate(SIDES):
+        for index,side in enumerate(vampy.SIDES):
             title = wx.StaticText(self, -1, side)
             cropping = wx.TextCtrl(self, -1, '0', 
                                     style = wx.TE_PROCESS_ENTER,
-                                    name = side+'crop', validator = NumValidator('int', min=0))
+                                    name = side+'crop', validator = wxutil.NumValidator('int', min=0))
             self.Bind(wx.EVT_TEXT_ENTER, parent.OnConfigImage, cropping)
             cropsizer.Add(title, 1, wx.GROW|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
             cropsizer.Add(cropping, 1, wx.ALIGN_LEFT|wx.GROW)
@@ -135,7 +110,7 @@ class VampyImageConfigPanel(wx.Panel):
     
     def ChoiceParams(self):
         return (
-                ('orient', 'Pipette orientation', SIDES),
+                ('orient', 'Pipette orientation', vampy.SIDES),
                 ('mode', 'Image mode', ('phc', 'dic')),
                 ('polar', 'DiC polarization', ('left', 'right'))
                 )
@@ -146,7 +121,7 @@ class VampyImageConfigPanel(wx.Panel):
     def Initialize(self, imgcfg):
         for child in self.GetChildren():
             child.Enable(True)
-        for side in SIDES:
+        for side in vampy.SIDES:
             cropctrl = wx.FindWindowByName(side+'crop')
             cropctrl.SetValue(str(imgcfg.get(side, 0)))
         
@@ -162,7 +137,7 @@ class VampyImageConfigPanel(wx.Panel):
     
     def GetCrop(self):
         crops = {}
-        for side in SIDES:
+        for side in vampy.SIDES:
             ctrl = wx.FindWindowByName(side+'crop')
             crop = ctrl.GetValue()
             crops[side] = int(crop)
@@ -210,7 +185,7 @@ class VampyAnalysisPanel(wx.Panel):
         
         for param in self.numparams:
             label = wx.StaticText(self, -1, param)
-            val = wx.TextCtrl(self, -1, '0', name = param, validator = NumValidator('float', min = 0))
+            val = wx.TextCtrl(self, -1, '0', name = param, validator = wxutil.NumValidator('float', min = 0))
             paramsizer.AddMany([(label,0,0), (val,0,0)])
         
         for param in self.boolparams:
@@ -259,14 +234,26 @@ class VampyImagePanel(wx.Panel):
         self.Imgs = None
         
         vsizer = wx.BoxSizer(wx.VERTICAL)
-        self.figure = Figure(facecolor = rgba_wx2mplt(self.GetBackgroundColour()))
+        self.figure = Figure(facecolor = wxutil.rgba_wx2mplt(self.GetBackgroundColour()))
         
         self.axes = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(self, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', parent.statusbar.SetPosition)
         vsizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
+        
+#        self.im = self.axes.imshow(empty((1,1)), aspect='equal', cmap=mplt.cm.gray)
+#        self.pipest = self.axes.axvspan(0,0, fc='g', alpha=0.5)
+#        self.minaspest = self.axes.axvline(0)
+#        self.minvesest = self.axes.axvline(0)
+#        self.pipaxis, = self.axes.plot([], [], 'y--')
+#        self.upinwallline, = self.axes.plot([],[], 'y-')
+#        self.lowinwallline, = self.axes.plot([],[], 'y-')
+#        self.upoutwallline, = self.axes.plot([],[], 'y-')
+#        self.lowoutwallline, = self.axes.plot([],[], 'y-')
+        
+        
+        navtoolbar = NavigationToolbar2(self.canvas)
         navtoolbar.Realize()
         vsizer.Add(navtoolbar, 0, wx.ALIGN_LEFT|wx.GROW)
         
@@ -282,14 +269,14 @@ class VampyImagePanel(wx.Panel):
         
         regionlabel = wx.StaticText(self, -1, 'Aspirated\nVesicle')
         slidersizer.Add(regionlabel, 0, wx.ALIGN_RIGHT)
-        self.regionslider = DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='aspves')
+        self.regionslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='aspves')
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.regionslider)
         self.paramsliders.append(self.regionslider)
         slidersizer.Add(self.regionslider, 1, wx.GROW|wx.ALIGN_LEFT)
         
         tiplabel = wx.StaticText(self, -1, 'Pipette Tip')
         slidersizer.Add(tiplabel, 0, wx.ALIGN_RIGHT)
-        self.tipslider = DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='tip')
+        self.tipslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='tip')
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.tipslider)
         self.paramsliders.append(self.tipslider)
         slidersizer.Add(self.tipslider, 1, wx.GROW|wx.ALIGN_LEFT)
@@ -303,12 +290,12 @@ class VampyImagePanel(wx.Panel):
         name = 'axis'
         label = wx.StaticText(self, -1, name)
         axslidersizer.Add(label)
-        self.axisslider = DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
+        self.axisslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.axisslider)
         
         name = 'pipette'
         label = wx.StaticText(self, -1, name)
-        self.pipetteslider = DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
+        self.pipetteslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.pipetteslider)
         axslidersizer.Add(label)
         
@@ -379,20 +366,20 @@ class VampyImagePanel(wx.Panel):
         imgno, ysize, xsize = self.Imgs.shape
         
         strvalue = imgcfg.get('aspves', '')
-        value, mesg = utils.split_to_int(strvalue, (0, xsize-1))
+        value, mesg = util.split_to_int(strvalue, (0, xsize-1))
         if mesg:
             self.GetParent().OnError(mesg)
         self.regionslider.SetValue(value)
         
         strvalue = imgcfg.get('tip', '')
-        value, mesg = utils.split_to_int(strvalue, (xsize/2, xsize/2+1))
+        value, mesg = util.split_to_int(strvalue, (xsize/2, xsize/2+1))
         if mesg:
             self.GetParent().OnError(mesg)
         self.tipslider.SetValue(value)
         
         for key in ('axis','pipette'):
             strvalue = imgcfg.get(key, '')
-            value, mesg = utils.split_to_int(strvalue, (0, ysize/4))
+            value, mesg = util.split_to_int(strvalue, (0, ysize/4))
             if mesg:
                 self.GetParent().OnError(mesg)
             wx.FindWindowByName(key).SetValue(value)
@@ -429,27 +416,33 @@ class VampyImagePanel(wx.Panel):
         self.axes.plot(xdots, line4, 'y-')
         
         self.axes.imshow(self.Imgs[ImgNo-1], aspect='equal', cmap=mplt.cm.gray)
+        
+#        self.im.set_array(self.Imgs[ImgNo-1])
+        
+#        self.axes.relim()
+#        self.axes.autoscale_view()
         self.canvas.draw()
+        
     
 class VampyFrame(wx.Frame):
     '''wxPython VAMP frontend'''
-    def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title)
-        customartprovider = CustomArtProvider()
+    def __init__(self, parent, id):
+        self.maintitle = 'VamPy'
+        wx.Frame.__init__(self, parent, id, title=self.maintitle)
+        customartprovider = wxutil.CustomArtProvider()
         wx.ArtProvider.Push(customartprovider)
         
         self.folder = None
         self.OpenedImgs = None
-        self.maintitle = title
         
-        self.menubar = VampyMenuBar(self)
+        self.menubar = wxutil.SimpleMenuBar(self, self.MenuData())
         self.SetMenuBar(self.menubar)
         
-        self.toolbar = self.MakeToolbar()
-        self.SetToolBar(self.toolbar)        
+        self.toolbar = wxutil.SimpleToolbar(self, *self.ToolbarData())
+        self.SetToolBar(self.toolbar)
         self.toolbar.Realize()
         
-        self.statusbar = VampyStatusBar(self)
+        self.statusbar = wxutil.PlotStatusBar(self)
         self.SetStatusBar(self.statusbar)
         
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -472,7 +465,7 @@ class VampyFrame(wx.Frame):
         self.Fit()
         self.Centre()
         
-        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
+        self.SetFrameIcons(libshch.WXPYTHON, (16,24,32))
         
     def SetFrameIcons(self, artid, sizes):
         ib = wx.IconBundle()
@@ -480,24 +473,32 @@ class VampyFrame(wx.Frame):
             ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
         self.SetIcons(ib)
     
-    def MakeToolbar(self):
-        buttons = self.ToolbarData()
-        return VampyToolbar(self, *buttons)
-    
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(resid.SAVETXT, wx.ART_TOOLBAR, (24,24))
+        bmpsavetxt = wx.ArtProvider.GetBitmap(libshch.SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
                 (bmpsavetxt, 'Save Image Info', 'Save image info', False),
                  self.OnSave),
                 )
-         
+    
+    def MenuData(self):
+        return [["&File", [
+                ("&Open Folder...\tCtrl+O", "Open folder with images", self.OnOpenFolder),
+                ("", "", ""),
+                ("&Exit", "Exit application", self.OnExit)]],
+                ["&Help", [
+                ("&Help", "Display help", self.OnHelp),
+                ("&About...", "Show info about application", self.OnAbout)]],
+                ["Debug", [
+                ("Reload", "Reload all dependencies", self.OnReload),
+                ("Debug image", "Debug current image", self.OnDebugImage)]]]
+             
     def OnOpenFolder(self, evt):
         """
         Open directory of files, load them and initialise GUI
         @param evt: incoming event from caller
         """
         if not self.folder:
-            self.folder = OWNPATH
+            self.folder = vampy.OWNPATH
         dirDlg = wx.DirDialog(self, message="Choose a directory",
                                 defaultPath = self.folder)
         if dirDlg.ShowModal() != wx.ID_OK:
@@ -543,9 +544,9 @@ class VampyFrame(wx.Frame):
         if self.OpenedImgs != None:
 #            del(self.OpenedImgs)
             self.OpenedImgs = None
-        imgcfgfilename = os.path.join(self.folder, CFG_FILENAME)
-        imgcfg = vload.read_conf_file(imgcfgfilename)
-        test, mesg = vload.read_grey_image(self.imgfilenames[0])
+        imgcfgfilename = os.path.join(self.folder, vampy.CFG_FILENAME)
+        imgcfg = load.read_conf_file(imgcfgfilename)
+        test, mesg = load.read_grey_image(self.imgfilenames[0])
         if mesg:
             return None, imgcfg, mesg
         try:
@@ -564,7 +565,7 @@ class VampyFrame(wx.Frame):
             if not keepLoading:
                 mesg = 'Progress cancelled! Not all images have been loaded.'
                 break
-            img, mesg = vload.read_grey_image(filename)
+            img, mesg = load.read_grey_image(filename)
             if mesg:
                 return None, imgcfg, mesg
             ### test that the image has the same shape as others
@@ -594,7 +595,7 @@ class VampyFrame(wx.Frame):
             crop = self.imgconfpanel.GetCrop()
         else:
             return
-        self.imgpanel.Imgs = vload.preproc_images(self.OpenedImgs, orient, crop)
+        self.imgpanel.Imgs = load.preproc_images(self.OpenedImgs, orient, crop)
         self.imgpanel.SetRanges()
         self.imgpanel.Draw()
         
@@ -616,17 +617,16 @@ class VampyFrame(wx.Frame):
             pressures, pressacc, scale, aver = self.GetExtraUserData(params['fromnames'], len(params['images']))
         except(TypeError): # catching type error
             return
-        out, extra_out = vfeat.locate(params)
-        geometry, mesg = vanalys.get_geometry(out)
+        out, extra_out = features.locate(params)
+        geometrydata, mesg = analysis.get_geometry(out)
         if mesg:
             self.OnError(mesg)
             return
-        avergeom = vanalys.averageImages(aver, **geometry)
-        geometryframe = VampyGeometryFrame(self, -1, avergeom)
-        geometryframe.Show()
+        avergeom = analysis.averageImages(aver, **geometrydata)
+        geometryframe = geometry.GeometryFrame(self, -1, avergeom)
+#        geometryframe.Show()
         
-        tensiondata = vanalys.tension_evans(pressures, pressacc, scale, avergeom)
-        tensionframe = VampyTensionsFrame(self, -1, tensiondata)
+        tensionframe = tension.TensionsFrame(self, -1, pressures, pressacc, scale, avergeom)
         tensionframe.Show()
         evt.Skip()
         
@@ -634,7 +634,7 @@ class VampyFrame(wx.Frame):
         if not pressfromfilenames:
             fileDlg = wx.FileDialog(self, message="Choose a pressure protocol file",
                                     defaultDir = self.folder, style = wx.OPEN,
-                                    wildcard = DATWILDCARD)
+                                    wildcard = vampy.DATWILDCARD)
             if fileDlg.ShowModal() != wx.ID_OK:
                 fileDlg.Destroy()
                 return
@@ -648,9 +648,9 @@ class VampyFrame(wx.Frame):
         stage, scale, pressacc = dlg.GetData()
         dlg.Destroy()
         if pressfromfilenames:
-            pressures, aver, mesg = vload.read_pressures_filenames(self.imgfilenames, stage)
+            pressures, aver, mesg = load.read_pressures_filenames(self.imgfilenames, stage)
         else:
-            pressures, mesg = vload.read_pressures_file(pressfilename, stage)
+            pressures, mesg = load.read_pressures_file(pressfilename, stage)
             if imgsNo % len(pressures) != 0:
                 self.OnError('Number of images is not multiple of number of pressures!')
                 return
@@ -682,7 +682,7 @@ class VampyFrame(wx.Frame):
             lines.append(line)
             
         try:
-            conffile = open(CFG_FILENAME, 'w')
+            conffile = open(vampy.CFG_FILENAME, 'w')
         except IOError:
             wx.MessageBox('An error occurred while saving image info', 'Error')
             evt.Skip()
@@ -692,35 +692,19 @@ class VampyFrame(wx.Frame):
         wx.MessageBox('Image info saved', 'Info')
         evt.Skip()
         
-    def OnReloadMath(self, evt):
+    def OnReload(self, evt):
         """
         Explicitly reloads all imported modules from VAMPy projects.
         @param evt: incoming event from caller
         """
-        reload(vload)
-        reload(vanalys)
-        reload(vfeat)
-        reload(vout)
-        reload(vfit)
-        reload(utils)
-        print '-'*20
-        
-    def OnReloadGUI(self, evt):
-        """
-        Reloads GUI
-        FIXME: introduces a memory leak, old version is not discarded completely
-        """
-#        dlg = wx.MessageDialog(self, 'Are you sure to reload GUI?', 'Please confirm',
-#                               style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
-#        if dlg.ShowModal() == wx.ID_YES:
-#            print '='*20
-#            del(self.OpenedImgs)
-#            wx.GetApp().Reload(self.folder)
-        
-        dlg = wx.MessageDialog(self, 'Not implemented (yet).\nClose the application, so that you can start it again?', 
-                       'Confirmation', style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
-        if dlg.ShowModal() == wx.ID_YES:
-            self.OnExit(wx.EVT_WINDOW_DESTROY)
+        reload(load)
+        reload(analysis)
+        reload(features)
+        reload(util)
+        reload(tension)
+        reload(debug)
+        reload(geometry)
+        print '='*10+'Reloaded'+'='*10
     
     def OnDebugImage(self, evt):
         """
@@ -738,15 +722,13 @@ class VampyFrame(wx.Frame):
         img = params['images'][imgNo-1]
         params['images'] = img.reshape(1, img.shape[0], img.shape[1])
         params['extra'] = True
-        out, extra_out = vfeat.locate(params)
+        out, extra_out = features.locate(params)
         extra_out = extra_out[0]
-        ImageDebugFrame = VampyImageDebugFrame(self, -1, img, out, extra_out)
+        ImageDebugFrame = debug.ImageDebugFrame(self, -1, img, out, extra_out)
         ImageDebugFrame.Show()
         
     def OnAbout(self, evt):
-        description = """Vesicle Aspiration with MicroPipettes made with Python
-Short instructions:
-Open folder with images, rotate so that pipette sticks from the left, crop if needed, set parameters and click start!"""
+        description = """Vesicle Aspiration with MicroPipettes made with Python"""
         info = wx.AboutDialogInfo()
         info.SetName('VAMPy')
         info.SetDescription(description)
@@ -759,313 +741,3 @@ Open folder with images, rotate so that pipette sticks from the left, crop if ne
         @param evt:
         """
         self.OnAbout(evt)
-    
-class VampyOtherUserDataDialog(wx.Dialog):
-    """
-    Dialog to collect additional data from user
-    """
-    def __init__(self, parent, id):
-        wx.Dialog.__init__(self, parent, id, 'Additional Parameters:')
-        
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-        self.stagerb=wx.RadioBox(self, -1, 'Stage No.', choices = ['1','2'], majorDimension=2)
-        vsizer.Add(self.stagerb, 1, wx.GROW)
-        
-        flsz = wx.FlexGridSizer(-1,2)
-        label = wx.StaticText(self, -1, 'Scale (um/pixel)')
-        flsz.Add(label, 1)
-        self.scale = wx.TextCtrl(self, -1, DEFAULT_SCALE, validator = NumValidator('float', min=0))
-        flsz.Add(self.scale,1)
-        
-        label = wx.StaticText(self, -1, 'Pressure Accuracy (Pa)')
-        flsz.Add(label)
-        self.pressacc = wx.TextCtrl(self, -1, DEFAULT_PRESSACC, validator = NumValidator('float', min=0))
-        flsz.Add(self.pressacc)
-        
-        vsizer.Add(flsz)
-        btnbox = wx.StdDialogButtonSizer()
-        okBtn = wx.Button(self, wx.ID_OK, 'OK')
-        okBtn.SetDefault()
-        closeBtn = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-        btnbox.AddButton(okBtn)
-        btnbox.AddButton(closeBtn)
-        btnbox.Realize()
-        
-        vsizer.Add(btnbox)
-        
-        self.SetSizer(vsizer)
-        self.Layout()
-        self.Fit()
-    
-    def GetData(self):
-        scale = float(self.scale.GetValue())
-        pressacc = float(self.pressacc.GetValue())
-        stage = self.stagerb.GetSelection()        
-        return stage, scale, pressacc
-
-class VampyTensionsFrame(wx.Frame):
-    def __init__(self, parent, id, tensiondata):
-        wx.Frame.__init__(self, parent, id, title = 'Dilation vs Tension')
-        
-        panel = wx.Panel(self, -1)
-        pansizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.statusbar = VampyStatusBar(self)
-        self.SetStatusBar(self.statusbar)
-        
-        self.toolbar = self.MakeToolbar()
-        self.SetToolBar(self.toolbar)
-        self.toolbar.Realize()
-        
-        self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
-        self.canvas = FigureCanvas(panel, -1, self.figure)
-        self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
-        self.axes = self.figure.add_subplot(111)
-        self.axes.set_aspect('auto')
-        pansizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
-        
-        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
-        navtoolbar.Realize()
-        pansizer.Add(navtoolbar, 0, wx.GROW)
-        
-        self.data = tensiondata
-        self.tau, self.tau_err = tensiondata['tension']
-        self.alpha, self.alpha_err = tensiondata['dilation']
-        
-        if self.tau[0] == 0:
-            init = 1
-        else:
-            init = 0
-        self.slider = DoubleSlider(panel, -1, (init, len(self.tau)), 0, len(self.tau), gap=2)
-        self.Bind(wx.EVT_SLIDER, self.OnSlide, self.slider)
-        pansizer.Add(self.slider, 0, wx.GROW)
-        panel.SetSizer(pansizer)
-        
-        panel.Fit()
-        title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
-        self.SetTitle(title)
-        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
-        self.Fit()
-        self.Draw()
-        
-    def SetFrameIcons(self, artid, sizes):
-        ib = wx.IconBundle()
-        for size in sizes:
-            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
-        self.SetIcons(ib)
-        
-    def MakeToolbar(self):
-        buttons = self.ToolbarData()
-        return VampyToolbar(self, *buttons)
-
-    def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(resid.SAVETXT, wx.ART_TOOLBAR, (24,24))
-        return ((
-                (bmpsavetxt, 'Save Data File', 'Save Data File', False),
-                 self.OnSave),
-                )
-    
-    def OnSlide(self, evt):
-        self.Draw()
-        evt.Skip()
-        
-    def OnSave(self, evt):
-        savedlg = wx.FileDialog(self, 'Save data', self.GetParent().folder,
-                            'tensions.dat', wildcard = DATWILDCARD, 
-                            style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
-        if savedlg.ShowModal() == wx.ID_CANCEL:
-            return
-        datname = savedlg.GetPath()
-        savedlg.Destroy()
-        writer = vout.DataWriter(self.data)
-        mesg = writer.write_file(datname)
-        if mesg:
-            self.GetParent().OnError(mesg)
-        
-    def Draw(self):
-        low, high = self.slider.GetValue()
-        self.axes.clear()
-
-        x = self.tau[low:high+1]
-        y = self.alpha[low:high+1]
-        sx = self.tau_err[low:high+1]
-        sy = self.alpha_err[low:high+1]
-        self.axes.semilogx(self.tau[low:high+1], self.alpha[low:high+1], 'ro', label = 'Measured')
-        
-#        x_b, y_b, sx_b, sy_b = self.tau[1:slider], self.alpha[1:slider], self.tau_err[1:slider], self.alpha_err[1:slider]
-#        x_e, y_e, sx_e, sy_e = self.tau[slider:], self.alpha[slider:], self.tau_err[slider:], self.alpha_err[slider:]
-#        slope_b, interc_b, bend, bend_sd = vanalys.bending_evans(x_b, y_b, sx_b, sy_b)
-#        slope_e, interc_e, elas, elas_sd = vanalys.elastic_evans(x_e, y_e, sx_e, sy_e)
-#
-#        self.axes.plot(x_b, vanalys.dilation_bend_evans(x_b, slope_b, interc_b), label = 'Fit low-P')
-#        self.axes.plot(x_e, vanalys.dilation_elas_evans(x_e, slope_e, interc_e), label = 'Fit high-P')
-        
-#        self.axes.axvline(self.tau[slider])
-
-#        fit, fit_sd, mesg, success = vfit.nls_Fournier(x, y)
-        fit = vfit.odrlinlog(x, y, sx, sy)
-        bend, intercept = fit.beta
-        
-        bend_sd, intercept_sd = fit.sd_beta
-        success = 1
-        if success != 1:
-            title = 'Fit Error: %s'%mesg
-        else:
-#            a0_T, bend, elas = fit
-#            bend_sd, a0_T_sd, elas_sd = fit_sd
-#            title = 'kappa = %f +- %f kT; K = %f +- %f mN/m'%(bend, bend_sd, elas/1000., elas_sd/1000.)
-#            title = 'kappa = %f kT; K = %f mN/m'%(bend, elas/1000.)
-#            f = vfit.alpha_Fournier()
-#            self.axes.plot(x, f(fit, x), label = 'Fournier fit')
-            title = 'kappa = %f +- %f kT'%(1/(8*pi*bend), bend_sd/(8*pi*bend))
-            f = vanalys.dilation_bend_evans
-            self.axes.plot(x, f(x, bend, intercept), label = 'Evans fit')
-        self.axes.set_title(title)
-        self.axes.legend(loc=4)
-        labelfont = {'fontsize':'large'}
-        self.axes.set_xlabel(r'$\tau$', fontdict = labelfont)
-        self.axes.set_ylabel(r'$\alpha$')
-        self.canvas.draw()
-
-class VampyGeometryFrame(wx.Frame):
-    def __init__(self, parent, id, argsdict):
-        wx.Frame.__init__(self, parent, id, size = (1024,768), title = 'Vesicle Geometry')
-        
-        self.data = argsdict
-        
-        self.statusbar = VampyStatusBar(self)
-        self.SetStatusBar(self.statusbar)
-        
-        self.toolbar = self.MakeToolbar()
-        self.SetToolBar(self.toolbar)
-        self.toolbar.Realize()
-        
-        panel = wx.Panel(self, -1)
-        pansizer = wx.BoxSizer(wx.VERTICAL)
-        self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
-        self.figure.suptitle('Pipette radius (px): %f +-%f'%tuple(self.data['piprad']))
-        self.canvas = FigureCanvas(panel, -1, self.figure)
-        self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
-        pansizer.Add(self.canvas, 1, wx.GROW)
-        titles = dict(aspl='Aspirated Length',
-                      vesrad='Vesicle Radius',
-                      area='Area',
-                      vesl='Outer Radius',
-                      volume='Volume',
-                      angle = 'Axis angle',
-                      metrics = 'metric')
-        toplot = ['aspl', 'vesl', 'metrics', 'area']
-        self.plots = {}
-        x = range(1, len(argsdict[toplot[0]][0])+1)
-        n,m = utils.grid_size(len(toplot))
-        for index, item in enumerate(toplot):
-            y, y_err = self.data[item]
-            plottitle = titles[item]
-            plot = self.figure.add_subplot(n,m,index+1, title = plottitle)
-            plot.errorbar(x, y, y_err, fmt='bo-', label=plottitle)
-            self.plots[item] = plot
-#       
-        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
-        navtoolbar.Realize()
-        pansizer.Add(navtoolbar, 0, wx.GROW)
-        
-        panel.SetSizer(pansizer)
-        panel.Fit()
-        title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
-        self.SetTitle(title)
-        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
-        self.canvas.draw()
-    
-    def SetFrameIcons(self, artid, sizes):
-        ib = wx.IconBundle()
-        for size in sizes:
-            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
-        self.SetIcons(ib)
-        
-    def MakeToolbar(self):
-        buttons = self.ToolbarData()
-        return VampyToolbar(self, *buttons)
-    
-    def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(resid.SAVETXT, wx.ART_TOOLBAR, (24,24))
-        return ((
-                (bmpsavetxt, 'Save Data File', 'Save Dat File', False),
-                 self.OnSave),
-                )
-        
-    def OnSave(self, evt):
-        savedlg = wx.FileDialog(self, 'Save data', self.GetParent().folder,
-                            'images.dat', wildcard = DATWILDCARD, 
-                            style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
-        if savedlg.ShowModal() == wx.ID_CANCEL:
-            return
-        datname = savedlg.GetPath()
-        savedlg.Destroy()
-        writer = vout.DataWriter(self.data)
-        mesg = writer.write_file(datname)
-        if mesg:
-            self.GetParent().OnError(mesg)
-            
-class VampyImageDebugFrame(wx.Frame):
-    def __init__(self, parent, id, img, out, extra_out):
-        wx.Frame.__init__(self, parent, id, size=(800,600), title = 'Single Image Debug')
-        
-        self.statusbar = VampyStatusBar(self)
-        self.SetStatusBar(self.statusbar)
-        
-        panel = wx.Panel(self, -1)
-        pansizer = wx.BoxSizer(wx.VERTICAL)
-        self.figure = Figure(facecolor = rgba_wx2mplt(panel.GetBackgroundColour()))
-        self.canvas = FigureCanvas(panel, -1, self.figure)
-        self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
-        pansizer.Add(self.canvas, 1, wx.GROW)
-        
-        navtoolbar = NavigationToolbar2WxAgg(self.canvas)
-        navtoolbar.Realize()
-        pansizer.Add(navtoolbar, 0, wx.GROW)
-        
-        profile = extra_out['profile']
-        self.profileplot = self.figure.add_subplot(221, title = 'Axis brightness profile')
-        self.profileplot.plot(profile)
-        self.profileplot.axvline(extra_out['pip'], color = 'blue')
-        self.profileplot.axvline(extra_out['asp'], color = 'yellow')
-        self.profileplot.axvline(extra_out['ves'], color = 'green')
-        
-        self.imgplot = self.figure.add_subplot(222, title = 'Image')
-        refs = extra_out['refs']
-        for ref in refs:
-            self.imgplot.plot([ref[0][1]], [ref[0][0]], 'yo') # due to format of refs
-        self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = mplt.cm.gray)
-
-        self.pipprofile1 = self.figure.add_subplot(223, title = 'Left pipette section')
-        xleft = refs[0][0][1]
-        pipprofile1 = img[:,xleft]
-        self.pipprofile1.plot(pipprofile1)
-        
-        self.pipprofile2 = self.figure.add_subplot(224, title = 'Right pipette section')
-        xright = refs[-1][0][1]
-        pipprofile2 = img[:,xright]
-        self.pipprofile2.plot(pipprofile2)
-        
-#        self.gradpipprofile1 = self.figure.add_subplot(325, title = 'Left pipette section gradient')
-#        self.gradpipprofile1.plot(utils.get_gradient(pipprofile1, 3))
-#        
-#        self.gradpipprofile2 = self.figure.add_subplot(326, title = 'Right pipette section gradient')
-#        self.gradpipprofile2.plot(utils.get_gradient(pipprofile2, 3))
-#        
-        panel.SetSizer(pansizer)
-        panel.Fit()
-        title = '%s : %s - Image %s - %s'%(parent.imagedate, parent.imagedir, parent.imgpanel.GetImgNo(), self.GetTitle())
-        self.SetTitle(title)
-        self.SetFrameIcons(resid.WXPYTHON, (16,24,32))
-        self.canvas.draw()
-        
-    def SetFrameIcons(self, artid, sizes):
-        ib = wx.IconBundle()
-        for size in sizes:
-            ib.AddIcon(wx.ArtProvider.GetIcon(artid, size = (size,size)))
-        self.SetIcons(ib)
-    
-if __name__ == "__main__":
-    print __doc__
-    wx.ART

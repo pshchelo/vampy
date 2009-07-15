@@ -11,7 +11,11 @@ prerequisites - installed numpy, scipy
 '''
 from numpy import pi, sqrt, square, log, fabs, exp  # most common for convenience
 import numpy as np
-import fitting as vfit
+from scipy import odr
+
+import vampy
+import fitting
+
 
 def averageImages(aver, **kwargs):
     if aver > 1:
@@ -96,20 +100,43 @@ def get_geometry(argsdict):
     
     return results, None
 
-### model for tension
-def tension_evans(P, dP, scale, argsdict):
+class TensionFitModel(object):
+    def __init__(self, datax, datay, model):
+        self.x, self.x_err = datax
+        self.y, self.y_err = datay
+        self.set_model(model)
+    
+    def set_model(self, model):
+        self.model = model
+            
+    def get_func(self):
+        return self.model.fcn
+    
+    def fit(self):
+        data = odr.RealData(self.x, self.y, sx=self.x_err, sy=self.y_err)
+        fitter = odr.ODR(data, self.model)
+        out = fitter.run()
+        report = self.model.meta
+        report['fit'] = out.beta
+        report['sd_fit'] = out.sd_beta
+        return report
+                   
+
+def tension_evans(P, dP, scale, geometrydict):
     """
     Calculate tensions based on geometry and pressures
-    @param pressures: pressure values corresponding to images, as numpy array
+    according to simplest model from Evans1987
+    @param P: pressure values corresponding to images, as numpy array
+    @param dP: pressure accuracy 
     @param scale: physical scale of the image (um/pixel)
+    @param geometrydict: dictionary of various vesicle geometry data
     """
-    A, dA = argsdict['area']
-    Rv, dRv = argsdict['vesrad']
-    Rp, dRp = argsdict['piprad']
-    ### the simplest model for tensions from Evans1987
+    A, dA = geometrydict['area']
+    Rv, dRv = geometrydict['vesrad']
+    Rp, dRp = geometrydict['piprad']
+
     tau = 0.5*P/(1/Rp-1/Rv)*scale
-    tau_err = sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
-#    tau_err[0]=0.5*dP/(1/Rp-1/Rv[0])*scale # could be avoided if the above line is written without 1/P
+    tau_err = scale*sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
     
     alpha = (A-A[0])/A[0]
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
@@ -117,7 +144,6 @@ def tension_evans(P, dP, scale, argsdict):
     tensiondata = {}
     tensiondata['tension'] = np.asarray((tau, tau_err))
     tensiondata['dilation'] = np.asarray((alpha,alpha_err))
-#    np.savetxt('img-phc-data.csv', np.asarray((tau, alpha, tau_err, alpha_err)).transpose(), delimiter='\t')
     return tensiondata
 
 ### alpha ~ log(tau), simple model
@@ -129,7 +155,7 @@ def dilation_elas_evans(tau, slope, intercept):
 
 ### model for kappa from alpha ~ log(tau), simple model
 def bending_evans(tau, alpha, tau_sd, alpha_sd):
-    fit = vfit.odrlin(log(tau), alpha, tau_sd/tau, alpha_sd)
+    fit = fitting.odrlin(log(tau), alpha, tau_sd/tau, alpha_sd)
     slope, intercept = fit.beta
     slope_sd, intercept_sd = fit.sd_beta
     bend = 1/(8*pi*slope)
@@ -139,7 +165,7 @@ def bending_evans(tau, alpha, tau_sd, alpha_sd):
     return slope, intercept, bend, bend_sd
 
 def elastic_evans(tau, alpha, tau_sd, alpha_sd):
-    fit = vfit.odrlin(tau, alpha, tau_sd, alpha_sd)
+    fit = fitting.odrlin(tau, alpha, tau_sd, alpha_sd)
     slope, intercept = fit.beta
     slope_sd, intercept_sd = fit.sd_beta
     elas = 1/slope
@@ -147,7 +173,8 @@ def elastic_evans(tau, alpha, tau_sd, alpha_sd):
     return slope, intercept, elas, elas_sd
 
 def bend_elas_evans(tau, A, tau_sd, A_sd):
-    fit = vfit.odr_Rawitz(tau, A, tau_sd, A_sd)
+    fit = fitting.odr_Rawitz(tau, A, tau_sd, A_sd)
+    
     
 if __name__ == '__main__':
     ### this is executed only if this source file is run separately

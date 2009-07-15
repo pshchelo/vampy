@@ -9,7 +9,7 @@ from numpy import diag, exp, linspace, sqrt, pi, log
 from scipy.optimize import leastsq
 from scipy.special import sici
 from scipy.stats import linregress
-from scipy.odr import models, RealData, ODR
+from scipy.odr import models, RealData, ODR, Model
 
 class fitcurve():
     """
@@ -55,7 +55,7 @@ class fitcurve():
         df = len(self.x)-len(fit)
         ### this correction is according to http://thread.gmane.org/gmane.comp.python.scientific.user/19482
         see = sqrt((errfunc(fit, self.x, self.y)**2).sum()/df)
-        if cov == None:
+        if cov is None:
             stderr = None
         else:
             stderr = sqrt(diag(cov))*see
@@ -69,7 +69,7 @@ def odrlin(x,y, sx, sy):
     """
     model = models.unilinear  # defines model as beta[0]*x + beta[1]
     data = RealData(x,y,sx=sx,sy=sy)
-    kinit = (y[-1]-y[0])/(x[-1]-x[0]) 
+    kinit = (y[-1]-y[0])/(x[-1]-x[0])
     init = (kinit, y[0]-kinit*x[0])
     linodr = ODR(data, model, init)
     return linodr.run()
@@ -166,6 +166,61 @@ def fit_gauss(y, sgn):
     x = linspace(0, y.size - 1, y.size)
     gauss_fit = fitcurve(gauss, x, y, pinit)
     return gauss_fit.fit()
-      
+
+#===============================================================================
+# Evans Model for dilation vs tension
+#===============================================================================
+def bend_evans_fcn(B, x):
+    return 1/(8*pi*B[0])*log(x/B[1])
+
+def _bend_evans_fjb(B,x):
+    return
+
+def _bend_evans_fjd(B,x):
+    return
+
+def _bend_evans_est(x):
+    return [1,1]
+
+def _bend_evans_meta():
+    return {'name':'Classical Evans model',
+            'params':[('kappa','$\\kappa$'),('tau0','$\\tau_0$')],
+            'equ':['alpha = 1/(8*pi*kappa)*log(tau/tau0)',
+                   '$\\alpha = \\frac{1}{8*pi*\\kappa}*\\ln{\\frac{\\tau}{\\tau_0}}$']}
+
+#bend_evans_model = Model(bend_evans_fcn, fjacd=_bend_evans_fjd, fjacb=_bend_evans_fjb,
+#                  estimate=_bend_evans_est, meta=_bend_evans_meta())
+bend_evans_model = Model(bend_evans_fcn,
+                  estimate=_bend_evans_est, meta=_bend_evans_meta())
+#------------------------------------------------------------------------------ 
+
+#===============================================================================
+# Simple linear elastic stretching model for dilation vs tension
+#===============================================================================
+def stretch_simple_fcn(B,x):
+    return x/B[0]+B[1]
+
+def _stretch_simple_fjb(B,x):
+    return 
+
+def _stretch_simple_fjd(B,x):
+    return 
+
+def _stretch_simple_est(x):
+    return [1,1]
+
+def _stretch_simple_meta():
+    return {'name':'Simple elastic stretching model',
+            'params':[('K','$K$'),('tau0','$\\tau_0$')],
+            'equ':['alpha = tau/K+tau0',
+                   '$\\alpha = \\frac{\\tau}{K}+\\tau_0$']}
+    
+#stretch_simple_model = Model(stretch_simple_fcn, fjacd=_stretch_simple_fjd, fjacb=_stretch_simple_fjb,
+#                  estimate=_stretch_simple_est, meta=_stretch_simple_meta())
+stretch_simple_model = Model(stretch_simple_fcn,
+                  estimate=_stretch_simple_est, meta=_stretch_simple_meta())
+#------------------------------------------------------------------------------
+
+
 if __name__ == '__main__':
     print __doc__

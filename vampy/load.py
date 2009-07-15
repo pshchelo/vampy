@@ -7,8 +7,6 @@ import numpy as np
 ### for loading images to numpy arrays with PIL
 from scipy import misc
 
-SIDES = ['left', 'right', 'top', 'bottom']
-
 def read_grey_image(filename):
     '''read single greyscale image'''
     mesg = None
@@ -41,8 +39,8 @@ def read_conf_file(filename):
 
 def preproc_images(images, orientation, crop):
     '''prepocess images
-    orientations - member of SIDES
-    crop - dictionary with keys as SIDES,
+    orientations - member of vampy.SIDES
+    crop - dictionary with keys as vampy.SIDES,
            with respective relative crop amounts'''
     ### crop image
     crop['bottom'] = images.shape[1] - crop['bottom']
