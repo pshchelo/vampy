@@ -7,7 +7,8 @@ extracted from vesicle aspiration images.
 more details are documented in vamp.tex
 
 prerequisites - installed numpy, scipy
-
+TODO: check the units of outputs for tension, kappa, K
+TODO: check for error values in dilation (too big?!) 
 '''
 from numpy import pi, sqrt, square, log, fabs, exp  # most common for convenience
 import numpy as np

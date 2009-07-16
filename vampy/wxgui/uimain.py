@@ -624,7 +624,8 @@ class VampyFrame(wx.Frame):
             return
         avergeom = analysis.averageImages(aver, **geometrydata)
         geometryframe = geometry.GeometryFrame(self, -1, avergeom)
-#        geometryframe.Show()
+#------------------------------------------------------- here disable geometry window
+        geometryframe.Show()
         
         tensionframe = tension.TensionsFrame(self, -1, pressures, pressacc, scale, avergeom)
         tensionframe.Show()

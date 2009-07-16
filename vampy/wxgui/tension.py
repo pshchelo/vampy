@@ -25,6 +25,7 @@ class TensionsFrame(wx.Frame):
         self.inputdata = inputdata
         
         self.MakeModelPanel()
+        self.MakePlotOptPanel()
         
         self.data = self.TensionModel(inputdata)
         
@@ -40,14 +41,20 @@ class TensionsFrame(wx.Frame):
         title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
         self.SetTitle(title)
         
-        self.hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.hbox.Add(self.imgbox, 1, wx.GROW)
-        self.hbox.Add(self.modelpanel, 0, wx.GROW)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(self.imgbox, 1, wx.GROW)
         
-        self.panel.SetSizer(self.hbox)
+        sidevbox = wx.BoxSizer(wx.VERTICAL)
+        
+        sidevbox.Add(self.modelpanel, 0, wx.GROW)
+        sidevbox.Add(self.plotoptpanel, 0, wx.GROW)
+        
+        hbox.Add(sidevbox, 0, wx.GROW)
+        
+        self.panel.SetSizer(hbox)
         
         self.SetFrameIcons(libshch.WXPYTHON, (16,24,32))
-        self.hbox.Fit(self)
+        hbox.Fit(self)
         self.init_plot()
         self.Draw()
     
@@ -80,6 +87,8 @@ class TensionsFrame(wx.Frame):
     def init_plot(self):
         name = self.fitmodelchoice.GetStringSelection()
         self.fitmodel = vampy.TENSFITMODELS[name]
+        xscalemode = self.xscalechoice.GetStringSelection()
+        self.axes.set_xscale(xscalemode)
     
     def SetFrameIcons(self, artid, sizes):
         ib = wx.IconBundle()
@@ -121,6 +130,26 @@ class TensionsFrame(wx.Frame):
         
         self.modelpanel.SetSizer(modelbox)
     
+    def MakePlotOptPanel(self):
+        self.plotoptpanel = wx.Panel(self.panel, -1)
+        
+        labelxscale = wx.StaticText(self.plotoptpanel, -1, 'X scale')
+        self.xscalechoice = wx.Choice(self.plotoptpanel, -1, choices = ['linear','log'])
+        self.xscalechoice.SetSelection(0)
+        self.Bind(wx.EVT_CHOICE, self.OnXScale, self.xscalechoice)
+        
+        plotoptstbox = wx.StaticBox(self.plotoptpanel, -1, 'Plot options')
+        plotoptbox = wx.StaticBoxSizer(plotoptstbox, wx.VERTICAL)
+        
+        flexsz = wx.FlexGridSizer(cols=2)
+        
+        flexsz.Add(labelxscale, 0, wx.GROW|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
+        flexsz.Add(self.xscalechoice, 1, wx.GROW)
+        
+        plotoptbox.Add(flexsz, 0)
+        
+        self.plotoptpanel.SetSizer(plotoptbox)
+    
     def TensionModel(self, inputdata):
         modelname = self.tensmodelchoice.GetStringSelection()
         model = vampy.TENSMODELS[modelname]
@@ -137,7 +166,13 @@ class TensionsFrame(wx.Frame):
         self.data = self.TensionModel(self.inputdata)
         self.Draw()
         evt.Skip()
-            
+    
+    def OnXScale(self, evt):
+        xscalemode = self.xscalechoice.GetStringSelection()
+        self.axes.set_xscale(xscalemode)
+        self.Draw()
+        evt.Skip()
+
     def OnSlide(self, evt):
         self.Draw()
         evt.Skip()
@@ -188,5 +223,5 @@ class TensionsFrame(wx.Frame):
         self.axes.legend(loc=4)
         
         self.axes.relim()
-        self.axes.autoscale_view(tight=True)
+        self.axes.autoscale_view(tight=False)
         self.canvas.draw()
