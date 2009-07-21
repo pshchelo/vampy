@@ -22,14 +22,10 @@ class DataWriter():
         side-effect - changes self.datafields and self.paramfields
                     by moving some values from one to another
         """
-        print self.datafields
         for field in self.datafields:
-            print field, self.data[field].shape
             if len(self.data[field].shape) == 1:
                 self.paramfields.append(field)
                 self.datafields.remove(field)
-        print self.paramfields
-        print self.datafields
                                
     def _make_header(self):
         header = '#Data export file\n'
@@ -52,11 +48,9 @@ class DataWriter():
             return mesg
         outfile.write(self._make_header())
         length = self.data[self.datafields[0]].shape[-1]
-#        print self.datafields
         for i in range(0, length):
             line = '%i'%(i+1)
             for field in self.datafields:
-#                print field
                 data = self.data[field][:,i]
                 line += len(data)*'\t%f'%tuple(data)
             line += '\n'
