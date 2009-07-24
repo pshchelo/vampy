@@ -184,7 +184,8 @@ def _bend_evans_est(x):
 
 def _bend_evans_meta():
     return {'name':'Classical Evans model',
-            'params':[('kappa','$\\kappa$'),('tau0','$\\tau_0$')],
+            'params':[('kappa','$\\kappa$','kBT','$k_B T$'),
+                      ('tau0','$\\tau_0$','uN/m','$\\frac{\\mu N}{m}$')],
             'equ':['alpha = 1/(8*pi*kappa)*log(tau/tau0)',
                    '$\\alpha = \\frac{1}{8*pi*\\kappa}*\\ln{\\frac{\\tau}{\\tau_0}}$']}
 
@@ -211,7 +212,8 @@ def _stretch_simple_est(x):
 
 def _stretch_simple_meta():
     return {'name':'Simple elastic stretching model',
-            'params':[('K','$K$'),('tau0','$\\tau_0$')],
+            'params':[('K','$K$','uN/m','$\\frac{\mu N}{m}$'),
+                      ('tau0','$\\tau_0$','uN/m','$\\frac{\mu N}{m}$')],
             'equ':['alpha = tau/K+tau0',
                    '$\\alpha = \\frac{\\tau}{K}+\\tau_0$']}
     

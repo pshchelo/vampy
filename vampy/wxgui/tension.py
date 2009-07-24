@@ -69,8 +69,8 @@ class TensionsFrame(wx.Frame):
         self.fitplot, = self.axes.plot([],[])
         
         labelfont = {'fontsize':'large'}
-        self.axes.set_xlabel(r'$\tau$', fontdict = labelfont)
-        self.axes.set_ylabel(r'$\alpha$')
+        self.axes.set_xlabel('$\\tau$, %s'%self.data['tensdim'][1], fontdict = labelfont)
+        self.axes.set_ylabel('$\\alpha$')
         
         navtoolbar = NavigationToolbar2(self.canvas)
         navtoolbar.Realize()
@@ -221,9 +221,9 @@ class TensionsFrame(wx.Frame):
         
         title = ''
         for key in fittedparams.keys():
-            paramname, texparamname = key
+            paramname, texparamname, paramdim, texparamdim = key
             value, error = fittedparams[key]
-            title+='%s = %f $\\pm$ %f'%(texparamname, value, error)
+            title+='%s = %f $\\pm$ %f %s'%(texparamname, value, error, texparamdim)
             title += '\t'
         
         self.axes.set_title(title)

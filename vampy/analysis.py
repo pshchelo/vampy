@@ -7,7 +7,6 @@ extracted from vesicle aspiration images.
 more details are documented in vamp.tex
 
 prerequisites - installed numpy, scipy
-TODO: check the units of outputs for tension, kappa, K
 TODO: check for error values in dilation (too big?!) 
 '''
 from numpy import pi, sqrt, square, log, fabs, exp  # most common for convenience
@@ -59,8 +58,6 @@ def get_geometry(argsdict):
                                 vesl_err**2 * (piprad**2 + vesl**2)**2)
 
     ### plus aspirated part depending on the length of aspirated part
-#    piprads = piprad*np.ones_like(aspl)
-#    piprads = piprad
     cond1 = (piprad <= aspl)
     cond2 = (aspl < piprad) & (aspl >= 2*vesrad - vesl)
     if not np.all(cond1^cond2): # XOR, checking that they are complimentary
@@ -69,7 +66,6 @@ def get_geometry(argsdict):
                 to the pipette mouth than possible\n"
         mesg += "Exiting..."
         return None, mesg
-    #FIXME: all the following errors are overestimated, use sqrt(sum(square)))
     area[cond1] += (2 * pi * piprad * aspl)[cond1]
     area[cond2] += (pi * (piprad**2 + aspl**2))[cond2]
 
@@ -86,7 +82,7 @@ def get_geometry(argsdict):
                                 piprad_err**2 * (2*aspl-piprad)**2))[cond1]
     volume_err[cond2] += (0.5*pi * sqrt(
                                 4 * piprad**2 * aspl**2 * piprad_err**2 +
-                                aspl_err**2 * (piprad**2 + aspl**2)))[cond2]
+                                aspl_err**2 * (piprad**2 + aspl**2)**2))[cond2]
     results = {}
     results['aspl'] = np.asarray((aspl,aspl_err))
     results['vesl'] = np.asarray((vesl,vesl_err))
@@ -144,8 +140,9 @@ def tension_evans(P, dP, scale, geometrydict):
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
     
     tensiondata = {}
-    tensiondata['tension'] = np.asarray((tau, tau_err))
+    tensiondata['tension'] = np.asarray((tau, tau_err)) #in uN/m
     tensiondata['dilation'] = np.asarray((alpha,alpha_err))
+    tensiondata['tensdim'] = ('uN/m','$\\frac{\\mu N}{m}$')
     return tensiondata
 
 ### alpha ~ log(tau), simple model
