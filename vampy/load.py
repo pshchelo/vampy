@@ -83,24 +83,29 @@ def read_pressures_filenames(filenames, stage):
     mesg = None
     pressures = []
     index = []
-    for filename in filenames:
-        filename = os.path.basename(filename)
-        pressstring, ext = os.path.splitext(filename)
-        pressstring = pressstring.replace('-', ' ')
-        pressstring = pressstring.replace('_', ' ')
-        elements = pressstring.split()
-        try:
-            pressure = float(elements[stage+1])
-            ind = int(elements[-1])
-        except(ValueError):
-            mesg = 'Wrong filenames format! (%s)'%filename
-            return None, mesg
-        pressures.append(pressure)
-        index.append(ind)
-    aver = max(index)+1
-    press = np.unique1d(np.asarray(pressures))
-#    print aver, len(press), len(pressures)
-    if aver*len(press) != len(pressures):
-        mesg = 'Some files are missing!'
+    fnames = map(os.path.basename, filenames)
+    pressstrings, exts = zip(*map(os.path.splitext, fnames))
+    try:
+        ind, press1, press2, subind = zip(*[x.replace('_','-').split('-') for x in pressstrings])
+    except ValueError:
+        mesg = 'Wrong filenames format!'
+        return None, None, mesg   
+    aver = len(filenames)/len(np.unique(ind))
+    if stage == 0:
+        press = press1
+    elif stage == 1:
+        press = press2
+    else:
+        mesg = 'Wrong stage number supplied!'
+        return None, None, mesg
+    try:
+        pressures = map(float, press)
+    except ValueError:
+        mesg = 'Wrong filenames format!'
         return None, mesg
-    return press, aver, mesg
+    #reduce sequences of identical values to respective single value
+    pressure = [x for i,x in enumerate(pressures) if i == 0 or x != pressures[i-1]]
+    if aver*len(pressure) != len(pressures):
+        mesg = 'Different number of images per pressure!'
+        return None, None, mesg
+    return np.asarray(pressure), aver, mesg

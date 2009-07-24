@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''Frame to display tensions plot and provide fitting facilities
+'''Frame to display dilation vs tension plot and provide fitting facilities
 '''
 import wx
 
@@ -76,13 +76,24 @@ class TensionsFrame(wx.Frame):
         navtoolbar.Realize()
         
         dim = self.data['tension'].shape[-1]
-        self.slider = wxutil.DoubleSlider(self.panel, -1, (0, dim), 0, dim, gap=2)
+        self.slider = wxutil.DoubleSlider(self.panel, -1, (1, dim), 1, dim, gap=2)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.slider)
+        self.lowlabel = wx.StaticText(self.panel, -1, '%i'%self.slider.GetLow(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+        self.highlabel = wx.StaticText(self.panel, -1, '%i'%self.slider.GetHigh(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
         
         self.imgbox = wx.BoxSizer(wx.VERTICAL)
         self.imgbox.Add(self.canvas, 1, wx.GROW)
         self.imgbox.Add(navtoolbar, 0, wx.GROW)
-        self.imgbox.Add(self.slider, 0, wx.GROW)
+        
+        labelbox = wx.BoxSizer(wx.VERTICAL)
+        labelbox.Add(self.lowlabel, 1, wx.GROW)
+        labelbox.Add(self.highlabel, 1, wx.GROW)
+        
+        sliderbox = wx.BoxSizer(wx.HORIZONTAL)
+        sliderbox.Add(labelbox, 0, wx.GROW)
+        sliderbox.Add(self.slider, 1, wx.GROW)
+        
+        self.imgbox.Add(sliderbox, 0, wx.GROW)
     
     def init_plot(self):
         name = self.fitmodelchoice.GetStringSelection()
@@ -174,6 +185,8 @@ class TensionsFrame(wx.Frame):
         evt.Skip()
 
     def OnSlide(self, evt):
+        self.lowlabel.SetLabel('%i'%self.slider.GetLow())
+        self.highlabel.SetLabel('%i'%self.slider.GetHigh())
         self.Draw()
         evt.Skip()
         
@@ -192,15 +205,9 @@ class TensionsFrame(wx.Frame):
         
     def Draw(self):
         low, high = self.slider.GetValue()
-        
-        tau, tau_err = self.data['tension']
-        alpha, alpha_err = self.data['dilation']
-        
-        x = tau[low:high+1]
-        y = alpha[low:high+1]
-        sx = tau_err[low:high+1]
-        sy = alpha_err[low:high+1]
-        
+        x, sx = self.data['tension'][:,low-1:high]
+        y, sy = self.data['dilation'][:,low-1:high]
+                
         self.dataplot.set_data(x, y)
                 
         fitmodel = analysis.TensionFitModel((x,sx),(y,sy), self.fitmodel)

@@ -59,9 +59,10 @@ def get_geometry(argsdict):
                                 vesl_err**2 * (piprad**2 + vesl**2)**2)
 
     ### plus aspirated part depending on the length of aspirated part
-    piprads = piprad*np.ones_like(aspl)
-    cond1 = (piprads <= aspl)
-    cond2 = (aspl < piprads) & (aspl >= 2*vesrad - vesl)
+#    piprads = piprad*np.ones_like(aspl)
+#    piprads = piprad
+    cond1 = (piprad <= aspl)
+    cond2 = (aspl < piprad) & (aspl >= 2*vesrad - vesl)
     if not np.all(cond1^cond2): # XOR, checking that they are complimentary
         mesg = "Error with detected features in aspirated part\n"
         mesg += "Detected aspirated tip is closer\
@@ -69,23 +70,23 @@ def get_geometry(argsdict):
         mesg += "Exiting..."
         return None, mesg
     #FIXME: all the following errors are overestimated, use sqrt(sum(square)))
-    area[cond1] += (2 * pi * piprads * aspl)[cond1]
-    area[cond2] += (pi * (piprads**2 + aspl**2))[cond2]
+    area[cond1] += (2 * pi * piprad * aspl)[cond1]
+    area[cond2] += (pi * (piprad**2 + aspl**2))[cond2]
 
     area_err[cond1] += (2*pi * sqrt(aspl**2 * piprad_err**2 +
-                                    piprads**2 * aspl_err**2))[cond1]
+                                    piprad**2 * aspl_err**2))[cond1]
     area_err[cond2] += (2*pi * sqrt(aspl**2 * aspl_err**2 +
-                                    piprads**2 * piprad_err**2))[cond2]
+                                    piprad**2 * piprad_err**2))[cond2]
 
-    volume[cond1] += (pi * piprads**2 * (aspl - piprads/3.0))[cond1]
-    volume[cond2] += ((3*piprads**2 + aspl**2) * aspl * pi/6.0)[cond2]
+    volume[cond1] += (pi * piprad**2 * (aspl - piprad/3.0))[cond1]
+    volume[cond2] += ((3*piprad**2 + aspl**2) * aspl * pi/6.0)[cond2]
 
-    volume_err[cond1] += (pi * piprads * sqrt(
-                                piprads**2 * aspl_err**2 +
-                                piprad_err**2 * (2*aspl-piprads)**2))[cond1]
+    volume_err[cond1] += (pi * piprad * sqrt(
+                                piprad**2 * aspl_err**2 +
+                                piprad_err**2 * (2*aspl-piprad)**2))[cond1]
     volume_err[cond2] += (0.5*pi * sqrt(
-                                4 * piprads**2 * aspl**2 * piprad_err**2 +
-                                aspl_err**2 * (piprads**2 + aspl**2)))[cond2]
+                                4 * piprad**2 * aspl**2 * piprad_err**2 +
+                                aspl_err**2 * (piprad**2 + aspl**2)))[cond2]
     results = {}
     results['aspl'] = np.asarray((aspl,aspl_err))
     results['vesl'] = np.asarray((vesl,vesl_err))
