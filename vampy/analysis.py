@@ -7,15 +7,16 @@ extracted from vesicle aspiration images.
 more details are documented in vamp.tex
 
 prerequisites - installed numpy, scipy
-TODO: check for error values in dilation (too big?!) 
+TODO: check for error values in dilation (too big?!)
 '''
-from numpy import pi, sqrt, square, log, fabs, exp  # most common for convenience
+from numpy import pi, sqrt, square, log, fabs  # most common for convenience
 import numpy as np
 from scipy import odr
 
-import vampy
 import fitting
 
+#implemented models for calculating tension from geometry
+TENSMODELS = {}
 
 def averageImages(aver, **kwargs):
     if aver > 1:
@@ -145,6 +146,8 @@ def tension_evans(P, dP, scale, geometrydict):
     tensiondata['tensdim'] = ('uN/m','$\\frac{\\mu N}{m}$')
     return tensiondata
 
+TENSMODELS['Evans'] = tension_evans
+
 ### alpha ~ log(tau), simple model
 def dilation_bend_evans(tau, slope, intercept):
     return slope*log(tau)+intercept
@@ -159,8 +162,8 @@ def bending_evans(tau, alpha, tau_sd, alpha_sd):
     slope_sd, intercept_sd = fit.sd_beta
     bend = 1/(8*pi*slope)
     bend_sd = slope_sd/(8*pi*slope*slope)
-    tau0 = exp(-intercept/slope)
-    tau0_sd = sqrt(slope*slope*intercept_sd*intercept_sd + slope_sd*slope_sd*intercept*intercept)*tau0/(slope_sd*slope_sd)
+#    tau0 = exp(-intercept/slope)
+#    tau0_sd = sqrt(slope*slope*intercept_sd*intercept_sd + slope_sd*slope_sd*intercept*intercept)*tau0/(slope_sd*slope_sd)
     return slope, intercept, bend, bend_sd
 
 def elastic_evans(tau, alpha, tau_sd, alpha_sd):
@@ -173,7 +176,7 @@ def elastic_evans(tau, alpha, tau_sd, alpha_sd):
 
 def bend_elas_evans(tau, A, tau_sd, A_sd):
     fit = fitting.odr_Rawitz(tau, A, tau_sd, A_sd)
-    
+    return fit
     
 if __name__ == '__main__':
     ### this is executed only if this source file is run separately

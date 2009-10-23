@@ -6,11 +6,12 @@ import wx
 
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
+from matplotlib import cm as colormaps
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-import libshch
+from libshch.common import *
 from libshch import wxutil
 
 class ImageDebugFrame(wx.Frame):
@@ -42,7 +43,7 @@ class ImageDebugFrame(wx.Frame):
         refs = extra_out['refs']
         for ref in refs:
             self.imgplot.plot([ref[0][1]], [ref[0][0]], 'yo') # due to format of refs
-        self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = mplt.cm.gray)
+        self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = colormaps.gray)
 
         self.pipprofile1 = self.figure.add_subplot(223, title = 'Left pipette section')
         xleft = refs[0][0][1]
@@ -64,7 +65,7 @@ class ImageDebugFrame(wx.Frame):
         panel.Fit()
         title = '%s : %s - Image %s - %s'%(parent.imagedate, parent.imagedir, parent.imgpanel.GetImgNo(), self.GetTitle())
         self.SetTitle(title)
-        self.SetFrameIcons(libshch.WXPYTHON, (16,24,32))
+        self.SetFrameIcons(WXPYTHON, (16,24,32))
         self.canvas.draw()
         
     def SetFrameIcons(self, artid, sizes):

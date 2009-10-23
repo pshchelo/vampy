@@ -3,18 +3,17 @@
 '''
 import wx
 
-from numpy import pi
-
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-import vampy
-from vampy import fitting, analysis, output
+from vampy.common import DATWILDCARD
+from vampy import analysis, output
+from vampy.fitting import TENSFITMODELS
 
-import libshch
+from libshch.common import WXPYTHON, SAVETXT
 from libshch import wxutil
 
 class TensionsFrame(wx.Frame):
@@ -53,7 +52,7 @@ class TensionsFrame(wx.Frame):
         
         self.panel.SetSizer(hbox)
         
-        self.SetFrameIcons(libshch.WXPYTHON, (16,24,32))
+        self.SetFrameIcons(WXPYTHON, (16,24,32))
         hbox.Fit(self)
         self.init_plot()
         self.Draw()
@@ -97,7 +96,7 @@ class TensionsFrame(wx.Frame):
     
     def init_plot(self):
         name = self.fitmodelchoice.GetStringSelection()
-        self.fitmodel = vampy.TENSFITMODELS[name]
+        self.fitmodel = TENSFITMODELS[name]
         xscalemode = self.xscalechoice.GetStringSelection()
         self.axes.set_xscale(xscalemode)
     
@@ -108,7 +107,7 @@ class TensionsFrame(wx.Frame):
         self.SetIcons(ib)
 
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(libshch.SAVETXT, wx.ART_TOOLBAR, (24,24))
+        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
                 (bmpsavetxt, 'Save Data File', 'Save Data File', False),
                  self.OnSave),
@@ -118,12 +117,12 @@ class TensionsFrame(wx.Frame):
         self.modelpanel = wx.Panel(self.panel, -1)
         
         labeltensmodel = wx.StaticText(self.modelpanel, -1, 'Tension')
-        self.tensmodelchoice = wx.Choice(self.modelpanel, -1, choices = vampy.TENSMODELS.keys())
+        self.tensmodelchoice = wx.Choice(self.modelpanel, -1, choices = analysis.TENSMODELS.keys())
         self.tensmodelchoice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.OnTensionModel, self.tensmodelchoice)
         
         labelfit = wx.StaticText(self.modelpanel, -1, 'Fitting')
-        self.fitmodelchoice = wx.Choice(self.modelpanel, -1, choices = vampy.TENSFITMODELS.keys())
+        self.fitmodelchoice = wx.Choice(self.modelpanel, -1, choices = TENSFITMODELS.keys())
         self.fitmodelchoice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.OnFitModel, self.fitmodelchoice)
         
@@ -163,13 +162,13 @@ class TensionsFrame(wx.Frame):
     
     def TensionModel(self, inputdata):
         modelname = self.tensmodelchoice.GetStringSelection()
-        model = vampy.TENSMODELS[modelname]
+        model = analysis.TENSMODELS[modelname]
         tensiondata = model(*inputdata)
         return tensiondata
     
     def OnFitModel(self, evt):
         name = self.fitmodelchoice.GetStringSelection()
-        self.fitmodel = vampy.TENSFITMODELS[name]
+        self.fitmodel = TENSFITMODELS[name]
         self.Draw()
         evt.Skip()
         
@@ -192,7 +191,7 @@ class TensionsFrame(wx.Frame):
         
     def OnSave(self, evt):
         savedlg = wx.FileDialog(self, 'Save data', self.GetParent().folder,
-                            'tensions.dat', wildcard = vampy.DATWILDCARD, 
+                            'tensions.dat', wildcard = DATWILDCARD, 
                             style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
         if savedlg.ShowModal() == wx.ID_CANCEL:
             return

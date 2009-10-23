@@ -11,13 +11,11 @@ more details are documented in vamp.tex
 prerequisites - installed numpy, scipy
 '''
 #for arrays and math
-from numpy import pi, sqrt, square, sum  # these are the most common ones just for convenience
+from numpy import sqrt, square, sum  # these are the most common ones just for convenience
 import numpy as np
-from scipy import ndimage, optimize, special
+from scipy import ndimage
 
-import fitting as vfit
-
-PIX_ERR = 0.5 # error for pixel resolution
+from common import PIX_ERR
 
 def line_profile(img, point1, point2):
     '''define the brightness profile along the line defined by 2 points
@@ -78,7 +76,8 @@ def point_to_line_dist(point, point1, point2):
     return np.asarray((np.fabs(dist), dist_err))
 
 def wall_points_subpix(img, refsx, mode):
-    return refssub, refs_err, extra_walls
+#    return refssub, refs_err, extra_walls
+    return
 
 def split_two_peaks(ar, mode):
     """
@@ -184,7 +183,7 @@ def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
     ves = np.argmax(grad[minvesest:]) + minvesest
     return pip, asp, ves
 
-def extract_pix_dic(polar, profile, minaspest, mivesest, tiplimits, darktip):
+def extract_pix_dic(polar, profile, minaspest, minvesest, tiplimits, darktip):
     pip = np.argmax(profile[minaspest:minvesest])+minaspest
     if polar == 'right':
         asp = np.argmax(profile[:minaspest])
@@ -203,17 +202,19 @@ def extract_subpix(profile, pip, asp, ves, mode):
 
 #TODO: more accurate subpix code for phase contrast
 def extract_subpix_phc(profile, pip, asp, ves):
-    pipfit = fit_peak(profile, pip)
-    aspfit = fit_edge_phc(profile, asp)
-    vesfit = fit_edge_phc(profile, ves)
-    return pipfit, aspfit, vesfit
+#    pipfit = fit_peak(profile, pip)
+#    aspfit = fit_edge_phc(profile, asp)
+#    vesfit = fit_edge_phc(profile, ves)
+#    return pipfit, aspfit, vesfit
+    return
 
 #TODO: more accurate subpix code for DIC
 def extract_subpix_dic(profile, pip, asp, ves, polar):
-    pipfit = fit_peak(profile, pip)
-    aspfit = fit_peak(profile, asp)
-    vesfit = fit_peak(profile, ves)
-    return pipfit, aspfit, vesfit
+#    pipfit = fit_peak(profile, pip)
+#    aspfit = fit_peak(profile, asp)
+#    vesfit = fit_peak(profile, ves)
+#    return pipfit, aspfit, vesfit
+    return
 
 def locate(argsdict):
     '''Extracts features of interest from set of images.

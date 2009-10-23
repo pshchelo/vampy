@@ -9,17 +9,20 @@ from numpy import empty
 
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
+from matplotlib import cm as colormaps
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-import vampy
 from vampy import analysis, features, load
 
 import tension, debug, geometry
 
-import libshch
 from libshch import wxutil, util
+
+from libshch.common import WXPYTHON, SAVETXT 
+from vampy.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
+from vampy.common import DEFAULT_SCALE, DEFAULT_PRESSACC
 
 class VampyOtherUserDataDialog(wx.Dialog):
     """
@@ -35,12 +38,12 @@ class VampyOtherUserDataDialog(wx.Dialog):
         flsz = wx.FlexGridSizer(-1,2)
         label = wx.StaticText(self, -1, 'Scale (um/pixel)')
         flsz.Add(label, 1)
-        self.scale = wx.TextCtrl(self, -1, '%s'%vampy.DEFAULT_SCALE, validator = wxutil.NumValidator('float', min=0))
+        self.scale = wx.TextCtrl(self, -1, '%s'%DEFAULT_SCALE, validator = wxutil.NumValidator('float', min=0))
         flsz.Add(self.scale,1)
         
         label = wx.StaticText(self, -1, 'Pressure Accuracy (Pa)')
         flsz.Add(label)
-        self.pressacc = wx.TextCtrl(self, -1, '%s'%vampy.DEFAULT_PRESSACC, validator = wxutil.NumValidator('float', min=0))
+        self.pressacc = wx.TextCtrl(self, -1, '%s'%DEFAULT_PRESSACC, validator = wxutil.NumValidator('float', min=0))
         flsz.Add(self.pressacc)
         
         vsizer.Add(flsz)
@@ -74,7 +77,7 @@ class VampyImageConfigPanel(wx.Panel):
         cropboxsizer = wx.StaticBoxSizer(cropbox, wx.VERTICAL)
         cropsizer = wx.FlexGridSizer(cols=2)
         
-        for index,side in enumerate(vampy.SIDES):
+        for index,side in enumerate(SIDES):
             title = wx.StaticText(self, -1, side)
             cropping = wx.TextCtrl(self, -1, '0', 
                                     style = wx.TE_PROCESS_ENTER,
@@ -110,7 +113,7 @@ class VampyImageConfigPanel(wx.Panel):
     
     def ChoiceParams(self):
         return (
-                ('orient', 'Pipette orientation', vampy.SIDES),
+                ('orient', 'Pipette orientation', SIDES),
                 ('mode', 'Image mode', ('phc', 'dic')),
                 ('polar', 'DiC polarization', ('left', 'right'))
                 )
@@ -121,7 +124,7 @@ class VampyImageConfigPanel(wx.Panel):
     def Initialize(self, imgcfg):
         for child in self.GetChildren():
             child.Enable(True)
-        for side in vampy.SIDES:
+        for side in SIDES:
             cropctrl = wx.FindWindowByName(side+'crop')
             cropctrl.SetValue(str(imgcfg.get(side, 0)))
         
@@ -137,7 +140,7 @@ class VampyImageConfigPanel(wx.Panel):
     
     def GetCrop(self):
         crops = {}
-        for side in vampy.SIDES:
+        for side in SIDES:
             ctrl = wx.FindWindowByName(side+'crop')
             crop = ctrl.GetValue()
             crops[side] = int(crop)
@@ -415,7 +418,7 @@ class VampyImagePanel(wx.Panel):
         self.axes.plot(xdots, line3, 'y-')
         self.axes.plot(xdots, line4, 'y-')
         
-        self.axes.imshow(self.Imgs[ImgNo-1], aspect='equal', cmap=mplt.cm.gray)
+        self.axes.imshow(self.Imgs[ImgNo-1], aspect='equal', cmap=colormaps.gray)
         
 #        self.im.set_array(self.Imgs[ImgNo-1])
         
@@ -433,7 +436,7 @@ class VampyFrame(wx.Frame):
         wx.ArtProvider.Push(customartprovider)
         
         self.folder = None
-        self.OpenedImgs = None
+#        self.OpenedImgs = None
         
         self.menubar = wxutil.SimpleMenuBar(self, self.MenuData())
         self.SetMenuBar(self.menubar)
@@ -465,7 +468,7 @@ class VampyFrame(wx.Frame):
         self.Fit()
         self.Centre()
         
-        self.SetFrameIcons(libshch.WXPYTHON, (16,24,32))
+        self.SetFrameIcons(WXPYTHON, (16,24,32))
         
     def SetFrameIcons(self, artid, sizes):
         ib = wx.IconBundle()
@@ -474,7 +477,7 @@ class VampyFrame(wx.Frame):
         self.SetIcons(ib)
     
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(libshch.SAVETXT, wx.ART_TOOLBAR, (24,24))
+        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
                 (bmpsavetxt, 'Save Image Info', 'Save image info', False),
                  self.OnSave),
@@ -498,7 +501,7 @@ class VampyFrame(wx.Frame):
         @param evt: incoming event from caller
         """
         if not self.folder:
-            self.folder = vampy.OWNPATH
+            self.folder = OWNPATH
         dirDlg = wx.DirDialog(self, message="Choose a directory",
                                 defaultPath = self.folder)
         if dirDlg.ShowModal() != wx.ID_OK:
@@ -541,10 +544,8 @@ class VampyFrame(wx.Frame):
                 self.SetTitle(title)
     
     def LoadImages(self):
-        if self.OpenedImgs != None:
-#            del(self.OpenedImgs)
-            self.OpenedImgs = None
-        imgcfgfilename = os.path.join(self.folder, vampy.CFG_FILENAME)
+        self.OpenedImgs = empty(1)
+        imgcfgfilename = os.path.join(self.folder, CFG_FILENAME)
         imgcfg = load.read_conf_file(imgcfgfilename)
         test, mesg = load.read_grey_image(self.imgfilenames[0])
         if mesg:
@@ -635,7 +636,7 @@ class VampyFrame(wx.Frame):
         if not pressfromfilenames:
             fileDlg = wx.FileDialog(self, message="Choose a pressure protocol file",
                                     defaultDir = self.folder, style = wx.OPEN,
-                                    wildcard = vampy.DATWILDCARD)
+                                    wildcard = DATWILDCARD)
             if fileDlg.ShowModal() != wx.ID_OK:
                 fileDlg.Destroy()
                 return
@@ -683,7 +684,7 @@ class VampyFrame(wx.Frame):
             lines.append(line)
             
         try:
-            conffile = open(vampy.CFG_FILENAME, 'w')
+            conffile = open(CFG_FILENAME, 'w')
         except IOError:
             wx.MessageBox('An error occurred while saving image info', 'Error')
             evt.Skip()

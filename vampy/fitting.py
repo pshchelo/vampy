@@ -11,6 +11,9 @@ from scipy.special import sici
 from scipy.stats import linregress
 from scipy.odr import models, RealData, ODR, Model
 
+#implemented models for fitting tension vs dilation
+TENSFITMODELS = {}
+
 class fitcurve():
     """
     Simple wrapper for scipy.optimize.leastsq
@@ -193,6 +196,7 @@ def _bend_evans_meta():
 #                  estimate=_bend_evans_est, meta=_bend_evans_meta())
 bend_evans_model = Model(bend_evans_fcn,
                   estimate=_bend_evans_est, meta=_bend_evans_meta())
+TENSFITMODELS['Bend Evans'] = bend_evans_model
 #------------------------------------------------------------------------------ 
 
 #===============================================================================
@@ -221,8 +225,9 @@ def _stretch_simple_meta():
 #                  estimate=_stretch_simple_est, meta=_stretch_simple_meta())
 stretch_simple_model = Model(stretch_simple_fcn,
                   estimate=_stretch_simple_est, meta=_stretch_simple_meta())
-#------------------------------------------------------------------------------
 
+TENSFITMODELS['Stretch simple'] = stretch_simple_model
+#------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     print __doc__

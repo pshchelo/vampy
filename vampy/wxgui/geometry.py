@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 import vampy
 from vampy import output
 
-import libshch
+from libshch.common import *
 from libshch import util, wxutil
 
 class GeometryFrame(wx.Frame):
@@ -62,7 +62,7 @@ class GeometryFrame(wx.Frame):
         panel.Fit()
         title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
         self.SetTitle(title)
-        self.SetFrameIcons(libshch.WXPYTHON, (16,24,32))
+        self.SetFrameIcons(WXPYTHON, (16,24,32))
         self.canvas.draw()
     
     def SetFrameIcons(self, artid, sizes):
@@ -72,7 +72,7 @@ class GeometryFrame(wx.Frame):
         self.SetIcons(ib)
         
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(libshch.SAVETXT, wx.ART_TOOLBAR, (24,24))
+        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (24,24))
         return ((
                 (bmpsavetxt, 'Save Data File', 'Save Dat File', False),
                  self.OnSave),
