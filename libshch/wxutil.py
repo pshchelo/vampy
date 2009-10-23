@@ -16,7 +16,7 @@ Provides following objects:
 
 import wx
 import os
-import libshch
+from libshch.common import *
 
 class SimpleMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
@@ -75,13 +75,13 @@ class CustomArtProvider(wx.ArtProvider):
         wx.ArtProvider.__init__(self)
         
     def CreateBitmap(self, artid, client, size):
-        if artid in libshch.CUSTOMART:
+        if artid in CUSTOMART:
             image = wx.Image(artid, wx.BITMAP_TYPE_ANY)
             bmp = wx.BitmapFromImage(image)
             return bmp
     
     def CreateIcon(self, artid, client, size):
-        if artid in libshch.CUSTOMART:
+        if artid in CUSTOMART:
             return wx.Icon(artid, wx.BITMAP_TYPE_ICO)
 
 def rgba_wx2mplt(wxcolour):
