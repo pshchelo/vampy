@@ -10,10 +10,10 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-import vampy
 from vampy import output
+from vampy.common import DATWILDCARD
 
-from libshch.common import *
+from libshch.common import WXPYTHON, SAVETXT
 from libshch import util, wxutil
 
 class GeometryFrame(wx.Frame):
@@ -80,7 +80,7 @@ class GeometryFrame(wx.Frame):
         
     def OnSave(self, evt):
         savedlg = wx.FileDialog(self, 'Save data', self.GetParent().folder,
-                            'images.dat', wildcard = vampy.DATWILDCARD, 
+                            'images.dat', wildcard = DATWILDCARD, 
                             style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
         if savedlg.ShowModal() == wx.ID_CANCEL:
             return
