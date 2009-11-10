@@ -3,10 +3,13 @@
 """
 
 import numpy as np
-from numpy import pi
 from scipy.odr import Model
 from scipy.optimize import leastsq
-import features as feat
+from scipy.ndimage import gaussian_gradient_magnitude
+from scipy.ndimage import map_coordinates
+
+from common import PIX_ERR
+
 
 def line_from_points(point1, point2):
     """
@@ -28,6 +31,7 @@ def line_perpendicular(k,b,x):
 #    y = k*x+b
     k_perp = -1./k
     b_perp = (k - k_perp) * x + b
+    return k_perp, b_perp
 
 def circle_fcn(B, x, y):
     return B[0]**2 - (B[1]-x)**2 - (B[2]-y)**2
@@ -60,13 +64,71 @@ def FitCircle(x,y):
     leastsq without errors
     '''
     return leastsq(circle_fcn, _circle_est(x,y), (x, y), Dfun=_circle_fjacb, full_output=1)
+
+def section_profile(img, point1, point2):
+    '''define the brightness profile along the line defined by 2 points
+
+    coordinates of points with their errors are supplied as numpy arrays 
+    in notation array((y,x),(dy,dx))!
+    might as well submit other options to map_coordinates function
+
+    it is assumed that pipette is more or less horizontal
+    so that axis intersects left and right image sides
+    '''
+    # define the line going though 2 points
+    y1,x1,dy1,dx1 = point1.flatten()
+    y2,x2,dy2,dx2 = point2.flatten()
+    k = (y2 - y1) / (x2 - x1)
     
-def RadialScanAsp(img, x0,y0,r0, phi0=3*pi/4, k0, b0):
-    edge = np.array((2,1))
-    alpha = np.arctan(k0)
-    for theta in np.linspace(-phi0/2.,phi0/2., 100):
-        x = x0-1.5*r0*np.cos(alpha+theta)
-        y = y0-1.5*r0*np.sin(alpha+theta)
+    dk = np.sqrt(dy1*dy1 + dy2*dy2 + k*k*(dx1*dx1+dx2*dx2) )/np.fabs(x2-x1)
+
+    # number of points for profile
+    # it is assumed that pipette is more or less horizontal
+    # so that axis intersects left and right image sides
+    nPoints = int(max(np.fabs(y2-y1), np.fabs(x2-x1)))
+
+    #coordinates of points in the profile
+    x = np.linspace(x1, x2, nPoints)
+    y = np.linspace(y1, y2, nPoints)
+
+    #calculate profile metric - coefficient for lengths in profile vs pixels
+    if np.fabs(k) <=1:
+        metric = np.sqrt(1 + k*k)
+        metric_err = np.fabs(k)*dk/metric
+    else:
+        metric = np.sqrt(1 + 1/(k*k))
+        metric_err = dk/np.fabs(metric * k*k*k)
+    #output interpolated values at points of profile and profile metric
+    return metric, metric_err, map_coordinates(img, [y, x], output = float)
+
+def CircleFunc(r, N=100):
+    phi = np.linspace(0,2*np.pi,N)
+    return r*np.cos(phi), r*np.sin(phi)
+    
+def VesicleEdge_phc(img, x0, y0, r0, N=100, phi1=0, phi2=2*np.pi, sigma=1):
+    Xedge = np.empty(N)
+    Yedge = np.empty(N)
+    for i, phi in enumerate(np.linspace(phi1, phi2, N)):
+        x = x0+r0*np.cos(phi)
+        y = y0+r0*np.sin(phi)
+        if x < 0:
+            x = 0
+            y = y0+(x-x0)*np.tan(phi)
+        elif x > img.shape[1]-1:
+            x = img.shape[1]-1
+            y = y0+(x-x0)*np.tan(phi)
+        if y < 0:
+            y = 0
+            x = x0+(y-y0)/np.tan(phi)
+        elif y > img.shape[0]-1:
+            y = img.shape[1]-1
+            x = x0+(y-y0)/np.tan(phi)
         
-        line = feat.line_profile(img, (), ())
-    return edge
+        point1 = np.asarray(((y0,x0),(PIX_ERR, PIX_ERR)))
+        point2 = np.asarray(((y,x),(PIX_ERR, PIX_ERR)))
+        metric, metric_err, line = section_profile(img, point1, point2)
+        grad = gaussian_gradient_magnitude(line,sigma)
+        pos = np.argmax(grad)
+        Xedge[i] = x0+pos*np.cos(phi)*metric
+        Yedge[i] = y0+pos*np.sin(phi)*metric
+    return Xedge, Yedge
