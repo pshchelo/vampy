@@ -20,7 +20,8 @@ from common import PIX_ERR
 def line_profile(img, point1, point2):
     '''define the brightness profile along the line defined by 2 points
 
-    coordinates of points with their errors are supplied as numpy arrays in notation array((y,x),(dy,dx))!
+    coordinates of points with their errors are supplied as numpy arrays 
+    in notation array((y,x),(dy,dx))!
     might as well submit other options to map_coordinates function
 
     it is assumed that pipette is more or less horizontal
@@ -89,6 +90,7 @@ def split_two_peaks(ar, mode):
     if mode >= 0:
         indices = np.flipud(indices)
     peak1 = indices[0]
+    peak2=indices[-1] #so that it works if only minimum is in the range, and no two peaks
     for pos in indices[1:]:
         left, right = peak1, pos
         if left > right:
@@ -172,6 +174,7 @@ def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
     if darktip:
         peak1, peak2 = split_two_peaks(tipprof, 1)
         pip = np.argmin(tipprof[peak1:peak2])+peak1
+        
     else:
         pip = np.argmax(tipprof)
     pip += tiplimleft
