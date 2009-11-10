@@ -62,7 +62,8 @@ class VampyOtherUserDataDialog(wx.Dialog):
         self.Fit()
     
     def GetData(self):
-        scale = float(self.scale.GetValue())
+        # [scale] = um/pix <=> [tau] = uN/m |=> [scale] = mm/pix <=> [tau] = mN/m
+        scale = float(self.scale.GetValue())/1000 
         pressacc = float(self.pressacc.GetValue())
         stage = self.stagerb.GetSelection()        
         return stage, scale, pressacc

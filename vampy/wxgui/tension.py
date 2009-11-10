@@ -65,6 +65,9 @@ class TensionsFrame(wx.Frame):
         self.axes.set_aspect('auto')
 
         self.dataplot, = self.axes.plot([], [], 'ro', label = 'Measured')
+#        self.dataplot, bars, = self.axes.errorbar([], [],1,1,'ro', label = 'Measured')
+#        self.xbars = bars[0:1]
+#        self.ybars = bars[2:3]
         self.fitplot, = self.axes.plot([],[])
         
         labelfont = {'fontsize':'large'}
@@ -208,6 +211,10 @@ class TensionsFrame(wx.Frame):
         y, sy = self.data['dilation'][:,low-1:high]
                 
         self.dataplot.set_data(x, y)
+#        self.xbars[0].set_xdata(x-sx)
+#        self.xbars[1].set_xdata(x+sx)
+#        self.ybars[0].set_ydata(y-sy)
+#        self.ybars[1].set_ydata(y+sy)
                 
         fitmodel = analysis.TensionFitModel((x,sx),(y,sy), self.fitmodel)
         result = fitmodel.fit()
@@ -222,7 +229,7 @@ class TensionsFrame(wx.Frame):
         for key in fittedparams.keys():
             paramname, texparamname, paramdim, texparamdim = key
             value, error = fittedparams[key]
-            title+='%s = %f $\\pm$ %f %s'%(texparamname, value, error, texparamdim)
+            title+='%s = %.2f $\\pm$ %.2f %s'%(texparamname, value, error, texparamdim)
             title += '\t'
         
         self.axes.set_title(title)
