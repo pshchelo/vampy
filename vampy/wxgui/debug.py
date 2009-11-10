@@ -11,7 +11,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-from libshch.common import *
+from libshch.common import WXPYTHON
 from libshch import wxutil
 
 class ImageDebugFrame(wx.Frame):
