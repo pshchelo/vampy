@@ -148,6 +148,52 @@ def tension_evans(P, dP, scale, geometrydict):
 
 TENSMODELS['Evans'] = tension_evans
 
+def tension_henriksen(P, dP, scale, geometrydict):
+    """
+    Calculate tensions based on geometry and pressures
+    according to the model used in Henriksen2004
+    @param P: pressure values corresponding to images, as numpy array
+    @param dP: pressure accuracy 
+    @param scale: physical scale of the image (um/pixel)
+    @param geometrydict: dictionary of various vesicle geometry data
+    """
+    Rv, dRv = geometrydict['vesrad']
+    Rp, dRp = geometrydict['piprad']
+    L, dL = geometrydict['aspl']
+    
+    dL0 = dL[0]
+    dL = sqrt(dL**2+dL[0]**2)
+    
+    tau = 0.5*P/(1/Rp-1/Rv)*scale
+    tau_err = scale*sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
+    
+    gamma = 1 - (2*Rp*L[0]+Rp**2)/(4*Rv[0]**2)
+
+    beta = 0.5*Rp*(L-L[0])/Rv[0]**2
+
+    delta = 1.5*beta*Rp/Rv[0]
+
+    Beta = beta+(1-delta)**(2/3)-1
+    
+    Delta = 1/(1-delta)**(1/3)
+    
+    alpha=gamma*Beta
+    dalpha_dRp = -0.5*Beta*(L[0]+Rp)/Rv[0]**2 + gamma*beta*(1/Rp-2*Delta/Rv[0])
+    dalpha_dRv = 2*Beta*(1-gamma)/Rv[0]**2+gamma*beta*(3*Rp*Delta/Rv[0]-2/Rv[0])
+    dalpha_dL0 = -0.5*Rp*Beta/Rv[0]**2
+    dalpha_dL = 0.5*gamma*Rp*(1-Rp*Delta*Rv[0])/Rv[0]**2
+    
+    alpha_err = sqrt(dalpha_dRp**2*dRp**2+dalpha_dRv**2*dRv**2+
+                      dalpha_dL**2*dL**2+dalpha_dL0**2*dL0**2)
+    
+    tensiondata = {}
+    tensiondata['tension'] = np.asarray((tau, tau_err)) #in uN/m
+    tensiondata['dilation'] = np.asarray((alpha, alpha_err))
+    tensiondata['tensdim'] = ('uN/m','$\\frac{\\mu N}{m}$')
+    return tensiondata
+
+TENSMODELS['alpha corr']=tension_henriksen
+
 ### alpha ~ log(tau), simple model
 def dilation_bend_evans(tau, slope, intercept):
     return slope*log(tau)+intercept
