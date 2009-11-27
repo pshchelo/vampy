@@ -3,20 +3,7 @@
 % all figures concerning Phase Contrast images are based on image file
 % pshchelo\images\pipettes\PhC\me\micropipettes6\ves_-000100.tif = phc-test1.tif
 
-\documentclass[a4paper,12pt]{article}
-\NeedsTeXFormat{LaTeX2e}
-\usepackage[pdftex]{graphicx}
-\usepackage{amssymb,amsbsy,amsmath}
-\usepackage{hyperref}
-\bibliographystyle{unsrt}
-%\usepackage{pshchelo}
-
-\begin{document}
-
-\title{Notes for development of image analysis for Vesicle Aspiration with MicroPipettes experiments}
-\author{Pavlo Shchelokovskyy}
-\date{\today}
-\maketitle
+\chapter{Notes for development of image analysis for Vesicle Aspiration with MicroPipettes experiments}
 
 The whole project can be divided in three ``subprojects'', which are mostly independent on each other in terms of development, but rather produce an input for next step:
 \begin{enumerate}
@@ -32,7 +19,7 @@ Since the project presumes development of software running on 3 different experi
 
 The total LabView program will consist of 4 blocks: pressure reading, image acquisition and stage movement and general control module. The only inputs/outputs shared among all three modules are START signal, that should initialize equipment and STOP signals that closes all connections nicely.
 
-The pressure reading module is totally independent from all others. Inputs are only parameters for init (card number, config file, etc), output is a pressure value.
+The pressure reading module is totally independent from all others. Inputs are only parameters for initializing (card number, config file, etc), output is a pressure value.
 
 The image acquisition module besides init values and real-time camera control inputs needs also a SNAP input command from general control module, that will save a current image.
 
@@ -260,5 +247,4 @@ Having combined data acquired from image analysis together with corresponding pr
 \subsection{Modern procedure}
 The overall ultimate goal is to implement a stochastical algorithm described at \cite{Henriksen2004}.
 
-\bibliography{pshchelo}
 \end{document}
