@@ -15,8 +15,7 @@ Provides following objects:
 """
 
 import wx
-import os
-from libshch.common import *
+from libshch.common import CUSTOMART
 
 class SimpleMenuBar(wx.MenuBar):
     '''Menu Bar for wxPython VAMP front-end'''
