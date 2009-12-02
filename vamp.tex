@@ -17,16 +17,13 @@ Let's consider these steps more closely
 
 Since the project presumes development of software running on 3 different experimental setups, \emph{LabView}\copyright{} environment was chosen for this part. This should enable creating the core of the automation procedure common for all three setups and then just plugging in specific device drivers.
 
-The total LabView program will consist of 4 blocks: pressure reading, image acquisition and stage movement and general control module. The only inputs/outputs shared among all three modules are START signal, that should initialize equipment and STOP signals that closes all connections nicely.
+Currently the LabView program (dubbed LabVamp) consist of 3 blocks: pressure reading, image acquisition and stage movement modules. The main conversation between modules is carried out by SNAP signal, that is ordering the camera to make a snapshot
 
 The pressure reading module is totally independent from all others. Inputs are only parameters for initializing (card number, config file, etc), output is a pressure value.
 
-The image acquisition module besides init values and real-time camera control inputs needs also a SNAP input command from general control module, that will save a current image.
+The image acquisition module besides init values and real-time camera control inputs needs also a SNAP input command from stage controllig module, that will save a current image.
 
-The stage movement module needs (besides init parameters) inputs for desired positions and must output current positions.
-
-The general control module is the core of the program, that reads outputs from other modules and dispatches signals to them when necessary.
-
+The stage movement module needs (besides init parameters) inputs for desired positions and must output current positions plus SNAP signal.
 
 \section{Extraction of data form images - VamPy}\label{data}
 
@@ -71,9 +68,9 @@ On the other hand, \emph{wxPython}'s wxImage object could be probably used, thus
 \label{fig:pipetteaxis}%
 \end{figure}
 
-First of all user provides an orientation of the picture (from which side the pipette sticks in), and the image is rotated to make the pipette stick from the left.
+First of all user crops the image so that everything but the vesicle is left out and rotates the picture so that the pipette sticks from left.
 
-Now that the orientation of the picture is always the same, user supplies $x$-coordinates of 3 vertical lines - first is just a suitable offset from the left border of the image, second is the overestimated rightmost (closest to the pipette tip) position of the aspirated vesicle tip and the third is the overestimated leftmost (also closest to the pipette tip) position of the outer vesicle edge. (see Fig.~\ref{fig:pipetteaxis}). Then the brightness profiles along 1st and 2nd lines are extracted to localize the position of pipette walls. For a phase contrast images inner walls of the pipette are considered to be inner inflection points of sharp minima peaks on the profile (see Fig.~\ref{fig:pipetteprofile}). In order to find them rough positions of the minima are estimated by finding 8 steepest jumps in the second derivative of gaussian-prefiltered (\verb|scipy.ndimage.gaussian_laplace()| function) profile across the pipette, with ``2nd and 3rd'' and ``6th and 7th'' defining estimate of peak location. Then the vicinity of estimate position is fitted with Gaussian profiles (for details on fitting procedure see Section~\ref{fitpeak}) and finally corresponding inflection points give sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$.
+Now that the orientation of the picture is always the same, user supplies $x$-coordinates of 3 vertical lines - first is just a suitable offset from the left border of the image, second is the overestimated rightmost (closest to the pipette tip) position of the aspirated vesicle tip and the third is the overestimated leftmost (also closest to the pipette tip) position of the outer vesicle edge. (see Fig.~\ref{fig:pipetteaxis}). \textsl{Then the brightness profiles along 1st and 2nd lines are extracted to localize the position of pipette walls. For a phase contrast images inner walls of the pipette are considered to be inner inflection points of sharp minima peaks on the profile (see Fig.~\ref{fig:pipetteprofile}). In order to find them rough positions of the minima are estimated by finding 8 steepest jumps in the second derivative of gaussian-prefiltered (\verb|scipy.ndimage.gaussian_laplace()| function) profile across the pipette, with ``2nd and 3rd'' and ``6th and 7th'' defining estimate of peak location. Then the vicinity of estimate position is fitted with Gaussian profiles (for details on fitting procedure see Section~\ref{fitpeak}) and finally corresponding inflection points give sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$.}
 
 \begin{figure}%
 \includegraphics[width=\columnwidth]{figs/pipetteprofile.pdf}%
@@ -88,7 +85,7 @@ Distance (unsigned) from point $\left(x_0,y_0\right)$ to line $y=kx+b$ is given 
 \delta = \left|\frac{kx_0+b-y_0}{\sqrt{k^2-1}}\right|\;.
 \label{eq:pointtoline}
 \end{equation}
-Thus the radius of the pipette for single image is calculated as mean of distances from every of 4 points to the line corresponding to the opposing wall. Then these values are again averaged between all images.
+Thus the diameter of the pipette for single image is calculated as mean of distances from every of 4 points to the line corresponding to the opposing wall. Then these values are again averaged between all images.
 
 \subsection{Calculate the middle line (axis) of the system}\label{calcaxis}
 
@@ -101,7 +98,7 @@ k = \frac{y_1+y_1-y_3-y_4}{x_1+x_2-x_3-x_4}, \; b = \frac{y_1+y_2}{2} - k\frac{x
 
 After that the brightness profile along this axis is extracted from image with special function (\verb|scipy.ndimage.map-coordinates()|), which returns spline-interpolated values of brightness ``between'' pixels. To define the set of points at which interpolated brightness should be evaluated first intersections of the system axis with boundaries of image are calculated. To define the number of points for evaluation the biggest of differences in $x$ or $y$ coordinates between intersection points is taken.
 
-Small pitfall --- since at the end we need real distances between features, an attention have to be paid to keep the scale of profiles equal. The above procedure does not keep the scale, because the line has only as many points as there are along one of it's coordinates, but it should be $\sqrt{x^2+y^2}$. Hence, the distance between 2 consecutive points on brightness profile along arbitrary tilted straight line corresponds to distance $\epsilon$ in pixels, where
+Small pitfall --- since at the end we need real distances between features, an attention have to be paid to keep the scale of profiles equal. The above procedure does not keep the scale, because the line has only as many points as there are along one of it's coordinates, but it should be $\sqrt{x^2+y^2}$. Hence, the distance between 2 consecutive points on brightness profile along arbitrary tilted straight line with number of evaluated points as defined above corresponds to distance $\epsilon$ in pixels, where
 \begin{equation}
 \epsilon = \left\{
 \begin{array}{ll}
@@ -244,7 +241,34 @@ Total area and volume of the vesicle are then $S = S_\text{out}+S_\text{in}$ and
 \subsection{Classical procedure}
 Having combined data acquired from image analysis together with corresponding pressure values obtained in experiment one finds elastic properties of membrane by fitting low-tension regime with logarithm and high-tension regime with linear functions. Also some corrections pointed out in \cite{Henriksen2004, Fournier2001} could be accounted for here, by trying to fit the whole range of pressures with one general function.
 
-\subsection{Modern procedure}
-The overall ultimate goal is to implement a stochastical algorithm described at \cite{Henriksen2004}.
+Currently tensions are calculated according to simple model after Evans:
+\begin{equation}
+\tau = \frac{P R_p}{2\left(1-\frac{R_p}{R_v}\right)}
+\label{eq:tau-evans}
+\end{equation}
 
-\end{document}
+Below is the list of currently implemented models/fittings.
+
+Dilations:
+\begin{itemize}
+	\item simplest model $\alpha = \frac{S-S_0}{S_0}$
+	\item corrected for initial aspiration after \cite{Henriksen2004}
+	\begin{equation}
+		\alpha = \left[
+		 \frac{1}{2} \left(\frac{R_p}{R_{v0}}\right)^2 \frac{\Delta L}{R_p} 
+		 + \left[1-\frac{3}{4}\left(\frac{R_p}{R_{v0}}\right)^3 \frac{\Delta L}{R_p} \right]^{\frac{2}{3}}
+		 - 1 
+		\right]\gamma
+		\label{eq:alpha-henriksen}
+	\end{equation}
+	where $\displaystyle{\gamma = 1-\frac{2R_p L_0+R_p^2}{4R_{v0}^2}}$.
+\end{itemize}
+
+Fittings (done with Orthogonal Distance Regression):
+\begin{itemize}
+	\item Simple model for bending rigidity: $\alpha=\frac{1}{8\pi\kappa}\ln{\frac{\tau}{\tau_0}}$
+	\item Simple model for stretching elasticity: $\alpha=\frac{\tau}{K}+\alpha_0$
+\end{itemize}
+
+\subsection{Modern procedure}
+The overall ultimate goal is to implement a MCMC (Markov Chain Monte Carlo) algorithm found in  \cite{Henriksen2004}.

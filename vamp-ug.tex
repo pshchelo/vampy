@@ -160,7 +160,7 @@ As it is now (not packaged in self-contained executable) you need the following 
 	\item wxPython 2.9.10 (\url{http://www.wxpython.org}
 	\item Python Image Library 1.1.6 (\url{www.pythonware.com/products/pil/}) 
 \end{itemize}
-All of the above is Open Source and freely available from respective websites. Version numbers are the ones with which the software was developed and tested, but it might also work with older versions and hopefully will work with future versions of Python language and packages. The program is cross-platform, it runs on both Windows and Linux/Unix and Mac as long as all dependencies are properly installed.
+All of the above is Open Source and freely available from respective websites. Version numbers are the ones with which the software was developed and tested, but it might also work with older versions and hopefully will work with future versions of Python language and packages. The program is cross-platform, it runs on Windows, Linux/Unix and Mac as long as all dependencies are properly installed.
 
 \subsection{What you can do with it}\label{vampy-features}
 \emph{Warning: list of features is actively changed!}
@@ -174,36 +174,6 @@ Currently you can:
 	\item Check suspicious points by analyzing single images to see whether the image analysis succeded
 	\item Obtain the plot of tension vs dilation and corresponding value for the bending rigidity or stretching elasticity from fitting of data
 	\item Export results of geometry analysis and tensions calculations to ASCII file
-\end{itemize}
-
-Tensions are calculated according to simple model after Evans:
-\begin{equation}
-\tau = \frac{P R_p}{2\left(1-\frac{R_p}{R_v}\right)}
-\label{eq:tau-evans}
-\end{equation}
-
-Below is the list of currently implemented models/fittings.
-
-Dilations:
-\begin{itemize}
-	\item simplest model $\alpha = \frac{S-S_0}{S_0}$
-	\item corrected for initial aspiration \cite{Henriksen2004}
-	\begin{equation}
-		\alpha = \left[
-		 \frac{1}{2} \left(\frac{R_p}{R_{v0}}\right)^2 \frac{\Delta L}{R_p} 
-		 + \left[1-\frac{3}{4}\left(\frac{R_p}{R_{v0}}\right)^3 \frac{\Delta L}{R_p} \right]^{\frac{2}{3}}
-		 - 1 
-		\right]\gamma
-		\label{eq:alpha-henriksen}
-	\end{equation}
-	where $\displaystyle{\gamma = 1-\frac{2R_p L_0+R_p^2}{4R_{v0}^2}}$.
-
-\end{itemize}
-
-Fittings (done with Orthogonal Distance Regression):
-\begin{itemize}
-	\item Simple model for bending rigidity: $\alpha=\frac{1}{8\pi\kappa}\ln{\frac{\tau}{\tau_0}}$
-	\item Simple model for stretching elasticity: $\alpha=\frac{\tau}{K}+\alpha_0$
 \end{itemize}
 
 \subsection{User Interface}\label{vampy-ui}
@@ -291,5 +261,3 @@ Current problems/limitations/target for improovements:
 	\item No subpixel resolution for single images
 	\item No extra data available to user
 \end{itemize}
-
-\end{document}
