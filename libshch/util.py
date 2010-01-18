@@ -62,9 +62,10 @@ def averages1d(data, sd=None):
         x = data[0]
         sd = data[1]
     else: #data is 1d
-        if not sd: #if no sd, sd are equal 1, so weighted mean = arithmetic mean
+        x=data
+        if not isinstance(sd, np.ndarray): 
             sd = np.ones_like(x)
-        elif sd.shape != 1:
+        elif sd.ndim != 1:
             raise ValueError('dimension of standard deviation is wrong')
         if x.shape != sd.shape:
             raise ValueError('mismatch of argument shapes')
