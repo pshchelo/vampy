@@ -1,7 +1,7 @@
 '''
 Created on 23 Oct 2009
 
-@author: family
+@author:
 '''
 import os.path
 
