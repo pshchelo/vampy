@@ -3,7 +3,7 @@ Various useful supporting functions
 '''
 
 import math
-from scipy import ndimage
+from scipy import ndimage, stats
 import numpy as np
 
 def split_to_int(line, dflt=None):
@@ -72,12 +72,21 @@ def averages1d(data, sd=None):
     
     N = len(x) #number of samples
     mean = np.average(x) # arithmetic mean
-    ssd = np.sqrt(np.sum((x-mean)*(x-mean))/(N-1)) # sample standard deviation (unbiased)
-    sem = ssd/np.sqrt(N) # sample standard error
+    ## ssd = np.sqrt(np.sum((x-mean)*(x-mean))/(N-1)) # sample standard deviation (unbiased)
+    ## sem = ssd/np.sqrt(N) # sample standard error (unbiased)
+    sem = stats.stderr(x) # sample standard error (unbiased)
+    wmean, wsem = weighted_mean(x, sd)
+    return (mean, sem), (wmean, wsem)
+    
+def weighted_mean(x, sd):
+    '''Calculate mean weighted with standard errors
+    
+    '''
+    N = len(x) #number of samples
     w = 1/(sd*sd) # weights
     w = w/w.sum() #normalized weights
     w2 = np.sum(w*w)
     wmean = np.average(x, weights=w) # weighted mean
-    wssd2 = 1/(1-w2)*np.sum(w*(x-wmean)*(x-wmean)) #unbiased variance estimator for weighted mean
-    wsem = np.sqrt(wssd2/N) # standard error of weighted mean
-    return (mean, sem), (wmean, wsem)
+    wssd2 = 1/(1-w2)*np.sum(w*(x-wmean)*(x-wmean)) # variance estimator for weighted mean (unbiased)
+    wsem = np.sqrt(wssd2/N) # standard error of weighted mean (unbiased)
+    return wmean, wsem
