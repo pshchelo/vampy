@@ -46,9 +46,9 @@ def get_geometry(argsdict):
     vesl_err = sqrt((pips_err**2 + vess_err**2) * metrics**2 + (vess-pips)**2 * metrics_err**2)
     
     ### outer vesicle radius
-    vesrad = (vesl**2 - piprad**2) / (2 * vesl)
+    vesrad = 0.5 * (vesl**2 + piprad**2) / vesl
     term = piprad**2 / (vesl**2)
-    vesrad_err = sqrt(term * piprad_err**2 + (1+term)**2 * vesl_err**2 / 4.0)
+    vesrad_err = sqrt(term * piprad_err**2 + (1+term)**2 * vesl_err**2 * 0.25)
 
     ### total vesicle surface and area
     ### outer part
@@ -137,13 +137,13 @@ def tension_evans(P, dP, scale, geometrydict):
     tau = 0.5*P/(1/Rp-1/Rv)*scale
     tau_err = scale*sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
     
-    alpha = (A-A[0])/A[0]
+    alpha = A/A[0]-1
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
     
     tensiondata = {}
-    tensiondata['tension'] = np.asarray((tau, tau_err)) #in uN/m
     tensiondata['dilation'] = np.asarray((alpha,alpha_err))
-    tensiondata['tensdim'] = ('uN/m','$\\frac{\\mu N}{m}$')
+    tensiondata['tension'] = np.asarray((tau/1000.0, tau_err/1000.0)) #in mN/m
+    tensiondata['tensdim'] = ('mN/m',r'$10^{-3}\frac{N}{m}$')
     return tensiondata
 
 TENSMODELS['Evans'] = tension_evans
@@ -187,9 +187,9 @@ def tension_henriksen(P, dP, scale, geometrydict):
                       dalpha_dL**2*dL**2+dalpha_dL0**2*dL0**2)
     
     tensiondata = {}
-    tensiondata['tension'] = np.asarray((tau, tau_err)) #in uN/m
     tensiondata['dilation'] = np.asarray((alpha, alpha_err))
-    tensiondata['tensdim'] = ('uN/m','$\\frac{\\mu N}{m}$')
+    tensiondata['tension'] = np.asarray((tau/1000.0, tau_err/1000.0)) #in mN/m
+    tensiondata['tensdim'] = ('mN/m',r'$10^{-3}\frac{N}{m}$')
     return tensiondata
 
 TENSMODELS['alpha corr']=tension_henriksen

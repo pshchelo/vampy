@@ -13,5 +13,5 @@ DATWILDCARD = "Data files (TXT, CSV, DAT)|*.txt;*.TXT;*.csv;*.CSV;*.dat;*.DAT | 
 CFG_FILENAME = 'vampy.cfg'
 
 DEFAULT_SCALE = 0.31746  # micrometer/pixel, Teli CS3960DCL, 20x overall magnification, from the ruler
-DEFAULT_PRESSACC = 0.00981  # 1 micrometer of water stack
+DEFAULT_PRESSACC = 0.00981  # 1 micrometer of water stack in Pascals
 PIX_ERR = 0.5  # error for pixel resolution
