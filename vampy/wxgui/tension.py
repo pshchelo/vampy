@@ -197,19 +197,21 @@ class TensionsFrame(wx.Frame):
                             'tensions.dat', wildcard = DATWILDCARD, 
                             style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
         if savedlg.ShowModal() == wx.ID_CANCEL:
+            evt.Skip()
             return
         datname = savedlg.GetPath()
         savedlg.Destroy()
-        writer = output.DataWriter(self.data)
+        writer = output.DataWriter(self.data, title='Vesicle tensions, %s model'%self.tensmodelchoice.GetStringSelection())
         mesg = writer.write_file(datname)
         if mesg:
             self.GetParent().OnError(mesg)
+        evt.Skip()
         
     def Draw(self):
         low, high = self.slider.GetValue()
         x, sx = self.data['tension'][:,low-1:high]
         y, sy = self.data['dilation'][:,low-1:high]
-                
+        
         self.dataplot.set_data(x, y)
 #        self.xbars[0].set_xdata(x-sx)
 #        self.xbars[1].set_xdata(x+sx)
@@ -236,5 +238,10 @@ class TensionsFrame(wx.Frame):
         self.axes.legend(loc=4)
         
         self.axes.relim()
-        self.axes.autoscale_view(tight=False)
+        if mplt.__version__ >= '0.99': #  to fight strange bug under Fedora8 linux matplotlib 0.98.3
+            self.axes.autoscale_view(tight=False)
+        else:
+            self.axes.set_xlim(x.min()-x.ptp()*0.05, x.max()+x.ptp()*0.05)
+            self.axes.set_ylim(y.min()-y.ptp()*0.05, y.max()+y.ptp()*0.05)
+
         self.canvas.draw()
