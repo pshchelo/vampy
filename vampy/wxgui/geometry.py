@@ -86,7 +86,7 @@ class GeometryFrame(wx.Frame):
             return
         datname = savedlg.GetPath()
         savedlg.Destroy()
-        writer = output.DataWriter(self.data)
+        writer = output.DataWriter(self.data, title='Vesicle geometry')
         mesg = writer.write_file(datname)
         if mesg:
             self.GetParent().OnError(mesg)
