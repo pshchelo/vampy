@@ -14,6 +14,7 @@ Provides following objects:
     GatherFilesPanel - Panel that displays a list of files and allows adding and removing files or groups of files
 """
 
+import os
 import wx
 from libshch.common import CUSTOMART
 
