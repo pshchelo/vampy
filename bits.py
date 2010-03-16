@@ -2,6 +2,16 @@
 '''
 Various bits and errands for VamPy project
 '''
+import numpy as np
+from numpy import sqrt
+from scipy import ndimage
+import vampy.fitting as vfit
+from vampy.features import split_two_peaks
+
+PIX_ERR = 0.5
+
+def max_edges():
+    return
 
 def find_edge(ar, centerest):
     '''Fits a steep change in 1D data with some suitable function'''
@@ -83,7 +93,7 @@ def wall_points_phc_1(img, refsx, sigma, extra):
                 ndimage.gaussian_laplace(img[:, refx], sigma).astype(float), 8)
         y = img[:, refx]
 
-        fit = fit_peak(y, jumps[1] + np.argmin(y[jumps[1]:jumps[2]]))
+        fit = find_peak(y, jumps[1] + np.argmin(y[jumps[1]:jumps[2]]))
         a, b, x0, s = fit[0]
         refs = np.append(refs, np.asarray((x0 + s, refx)), axis = 1)
         #taking err_x0+err_s while ref = x0+s
@@ -91,7 +101,7 @@ def wall_points_phc_1(img, refsx, sigma, extra):
         if extra:
             extra_wall['fit1'] = fit[0]
 
-        fit = fit_peak(y, jumps[5] + np.argmin(y[jumps[5]:jumps[6]]))
+        fit = find_peak(y, jumps[5] + np.argmin(y[jumps[5]:jumps[6]]))
         a, b, x0, s = fit[0]
         refs = np.append(refs, np.asarray((x0 - s, refx)), axis = 1)
         refs_err = np.append(refs_err, sum(sqrt(np.diag(fit[1])[2:])))
@@ -118,8 +128,8 @@ def wall_points_phc_2(img, refsx, mismatch, extra):
         edgel1, edger1 = max_edges(y[edgel:middle])
         shift = edgel
         centerest = shift+edgel1+np.argmin(y[shift+edgel1:shift+edger1+1])
-        fit = fit_peak(y, centerest)
-        err = fiterr(fit)
+        fit = find_peak(y, centerest)
+        err = vfit.fit_err(fit)
         if (fit[-1] != 1) or (err == None) or (sum(err[2:]) >= mismatch):
             refs = np.append(refs, np.asarray((centerest, refx)), axis = 1)
             refs_err = np.append(refs_err, 1)
@@ -135,8 +145,8 @@ def wall_points_phc_2(img, refsx, mismatch, extra):
         edgel2, edger2 = max_edges(y[middle:edger+1])
         shift = middle
         centerest = shift+edgel2+np.argmin(y[shift+edgel2:shift+edger2+1])
-        fit = fit_peak(y, centerest)
-        err = fiterr(fit)
+        fit = find_peak(y, centerest)
+        err = vfit.fit_err(fit)
         if (fit[-1] != 1) or (err == None) or (sum(err[2:]) >= mismatch):
             refs = np.append(refs, np.asarray((centerest, refx)), axis = 1)
             refs_err = np.append(refs_err, 1)
@@ -188,35 +198,7 @@ def wall_points_pix_1(img, refsx):
     
     return refs.reshape(-1,2,2)
 
-def wall_points_pix_1(img, refsx):
-    '''
-    Find reference points on the pipette for PhC image with pixel resolution
-    FIXME: Is it the same for both PhC and DiC types of images???
-    @param img: array representing the image
-    @param refsx: tuple of points where to make a cross-profile to find walls of the pipette
-    '''
-    #FIXME: BAD - relies heavily on clipped values of brightness corresponding to pipette cross-section 
-    refs = np.array([])
-    for refx in refsx:
-#        print refx
-        y = img[:, refx]
-
-        edgel, edger = max_edges(y)
-        middle = int((edgel + edger) * 0.5)
-
-        edgel1, edger1 = max_edges(y[edgel:middle])
-        shift = edgel
-        centerest = shift+edgel1+np.argmin(y[shift+edgel1:shift+edger1+1])
-        refs = np.append(refs, np.asarray(((centerest, refx),(PIX_ERR, 0))))
-        
-        edgel2, edger2 = max_edges(y[middle:edger+1])
-        shift = middle
-        centerest = shift+edgel2+np.argmin(y[shift+edgel2:shift+edger2+1])
-        refs = np.append(refs, np.asarray(((centerest, refx),(PIX_ERR, 0))))
-    
-    return refs.reshape(-1,2,2)
-
-def wall_points_pix2(img, refsx, sigma):
+def wall_points_pix_2(img, refsx, sigma):
     """
     
     @param img:
@@ -239,7 +221,7 @@ def wall_points_pix2(img, refsx, sigma):
         refs = np.append(refs, ref)
     return refs.reshape(-1,2,2)
 
-def wall_points_pix3(img, refsx, axisy, sigma):
+def wall_points_pix_3(img, refsx, axisy, sigma):
     N=2
     refs = np.array([])
     axisy = np.array([113,115])

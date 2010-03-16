@@ -14,6 +14,7 @@ prerequisites - installed numpy, scipy
 from numpy import sqrt, square, sum  # these are the most common ones just for convenience
 import numpy as np
 from scipy import ndimage
+from fitting import fit_err
 
 from common import PIX_ERR
 
@@ -288,7 +289,7 @@ def locate(argsdict):
             extra_img['ves'] = ves
                 
         if subpix:
-            pipfit, aspfit, vesfit = extraxt_subpix(mode, profile, pip, asp, ves)
+            pipfit, aspfit, vesfit = extract_subpix(mode, profile, pip, asp, ves)
             if extra:
                 extra_img['walls'] = extra_walls
                 extra_img['pipfit'] = pipfit
