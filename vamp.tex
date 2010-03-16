@@ -62,15 +62,15 @@ On the other hand, \emph{wxPython}'s wxImage object could be probably used, thus
 
 \subsection{Get user input}\label{getinput}
 
-\begin{figure}%
-\includegraphics[width=\columnwidth]{figs/pipetteaxis.pdf}%
-\caption{Sketch of general situation of pipette system alignment on the image}%
-\label{fig:pipetteaxis}%
+\begin{figure}
+\includegraphics[width=\columnwidth]{figs/pipetteaxis.pdf}
+\caption{Sketch of general situation of pipette system alignment on the image}
+\label{fig:pipetteaxis}
 \end{figure}
 
 First of all user crops the image so that everything but the vesicle is left out and rotates the picture so that the pipette sticks from left.
 
-Now that the orientation of the picture is always the same, user supplies $x$-coordinates of 3 vertical lines - first is just a suitable offset from the left border of the image, second is the overestimated rightmost (closest to the pipette tip) position of the aspirated vesicle tip and the third is the overestimated leftmost (also closest to the pipette tip) position of the outer vesicle edge. (see Fig.~\ref{fig:pipetteaxis}). \textsl{Then the brightness profiles along 1st and 2nd lines are extracted to localize the position of pipette walls. For a phase contrast images inner walls of the pipette are considered to be inner inflection points of sharp minima peaks on the profile (see Fig.~\ref{fig:pipetteprofile}). In order to find them rough positions of the minima are estimated by finding 8 steepest jumps in the second derivative of gaussian-prefiltered (\verb|scipy.ndimage.gaussian_laplace()| function) profile across the pipette, with ``2nd and 3rd'' and ``6th and 7th'' defining estimate of peak location. Then the vicinity of estimate position is fitted with Gaussian profiles (for details on fitting procedure see Section~\ref{fitpeak}) and finally corresponding inflection points give sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$.}
+Now that the orientation of the picture is always the same, user supplies $x$-coordinates of 3 vertical lines - first is just a suitable offset from the left border of the image, second is the overestimated rightmost (closest to the pipette tip) position of the aspirated vesicle tip and the third is the overestimated leftmost (also closest to the pipette tip) position of the outer vesicle edge. (see Fig.~\ref{fig:pipetteaxis}). \textsl{Then the brightness profiles along 1st and 2nd lines are extracted to localize the position of pipette walls. For a phase contrast images inner walls of the pipette are considered to be inner inflection points of sharp minima peaks on the profile (see Fig.~\ref{fig:pipetteprofile}). In order to find them rough positions of the minima are estimated by finding 8 steepest jumps in the second derivative of gaussian-prefiltered (\texttt{scipy.ndimage.gaussian\_laplace()} function) profile across the pipette, with ``2nd and 3rd'' and ``6th and 7th'' defining estimate of peak location. Then the vicinity of estimate position is fitted with Gaussian profiles (for details on fitting procedure see Section~\ref{fitpeak}) and finally corresponding inflection points give sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$.}
 
 \begin{figure}%
 \includegraphics[width=\columnwidth]{figs/pipetteprofile.pdf}%

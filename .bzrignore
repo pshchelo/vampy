@@ -5,3 +5,8 @@
 *.out
 *.toc
 ./*.pdf
+*.dvi
+*.synctex*
+*.tps
+*.tcp
+*.kilepr
