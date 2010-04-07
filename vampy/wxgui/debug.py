@@ -11,6 +11,8 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
+from scipy import ndimage
+
 from libshch.common import WXPYTHON
 from libshch import wxutil
 
@@ -35,6 +37,11 @@ class ImageDebugFrame(wx.Frame):
         profile = extra_out['profile']
         self.profileplot = self.figure.add_subplot(221, title = 'Axis brightness profile')
         self.profileplot.plot(profile)
+        sigma=parent.analysispanel.GetParams()['sigma']
+        grad=ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
+        multiplier = profile.max()/grad.max()/2
+        grad *= multiplier
+        self.profileplot.plot(grad)
         self.profileplot.axvline(extra_out['pip'], color = 'blue')
         self.profileplot.axvline(extra_out['asp'], color = 'yellow')
         self.profileplot.axvline(extra_out['ves'], color = 'green')
@@ -43,6 +50,7 @@ class ImageDebugFrame(wx.Frame):
         refs = extra_out['refs']
         for ref in refs:
             self.imgplot.plot([ref[0][1]], [ref[0][0]], 'yo') # due to format of refs
+            
         self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = colormaps.gray)
 
         self.pipprofile1 = self.figure.add_subplot(223, title = 'Left pipette section')

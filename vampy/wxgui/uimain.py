@@ -210,11 +210,11 @@ class VampyAnalysisPanel(wx.Panel):
         for param in self.numparams:
             ctrl = wx.FindWindowByName(param)
             ctrl.SetValue('3')
-            ctrl.Enable(False)
+#            ctrl.Enable(False)
         ### temporarily disabled, since not well implemented yet
-        for cb in self.boolparams:
-            ctrl = wx.FindWindowByName(cb)
-            ctrl.Enable(False)
+#        for cb in self.boolparams:
+#            ctrl = wx.FindWindowByName(cb)
+#            ctrl.Enable(False)
         
     def SetState(self, state):
         for child in self.GetChildren():
