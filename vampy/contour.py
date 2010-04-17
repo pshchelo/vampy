@@ -5,11 +5,38 @@
 import numpy as np
 from scipy.odr import Model
 from scipy.optimize import leastsq
+from scipy import ndimage
 from scipy.ndimage import gaussian_gradient_magnitude
 from scipy.ndimage import map_coordinates
 
 from common import PIX_ERR
+from features import line_profile
 
+def contour(img, A0, R0, phi1=-np.pi/2, phi2=np.pi/2, dphi=np.pi/180, DR=0.2,
+            sigma=3):
+#this is just a rough draft not intended to be working
+    y0, x0 = A0
+    phi = np.arange(phi1, phi2, dphi)
+    x1 =  x0+R0*(1-DR)*np.cos(phi)
+    y1 =  y0+R0*(1-DR)*np.sin(phi)
+    x2 =  x0+R0*(1+DR)*np.cos(phi)
+    y2 =  y0+R0*(1+DR)*np.sin(phi)
+        
+    Nphi, = phi.shape
+    for i in range(Nphi):
+        A1 = np.asarray(((y1[i],x1[i]),(PIX_ERR, PIX_ERR)))
+        A2 = np.asarray(((y2[i],x2[i]),(PIX_ERR, PIX_ERR)))
+        metrics, metrics_err, profile = line_profile(img, A1[i], A2[i])
+        rel_rim = find_rim(profile, sigma)*metrics
+        
+        real_rim = A1 + rel_rim
+        rim.append(real_rim)
+    return rim
+
+def find_rim(profile, sigma=3):
+    grad = ndimage.gaussian_gradient_magnitude(
+        ndimage.gaussian_filter1d(profile,sigma) , sigma)
+    return np.argmax(grad)
 
 def line_from_points(point1, point2):
     """

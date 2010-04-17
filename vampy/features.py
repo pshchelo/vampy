@@ -18,8 +18,88 @@ from fitting import fit_err
 
 from common import PIX_ERR
 
+def section_profile(img, point1, point2):
+    '''define the brightness profile along the section between 2 points
+
+    coordinates of end points with their errors are supplied as numpy arrays 
+    in notation array((y,x),(dy,dx))!
+    #TODO:might as well submit other options to map_coordinates function
+
+    '''
+    # define the line given by 2 ends
+    y1,x1,dy1,dx1 = point1.flatten()
+    y2,x2,dy2,dx2 = point2.flatten()
+    #fast solving of trivial cases
+    if x1==x2:
+        return 1, 0, img[y1:y2,x1]
+    if y1==y2:
+        return 1, 0, img[y1,x1:x2]
+    
+    deltax = np.fabs(x2-x1)
+    deltay = np.fabs(y2-y1)
+    ddeltax = np.sqrt(dx1**2+dx2**2)
+    ddeltay = np.sqrt(dy1**2+dy2**2)
+
+    longleg = max(deltax, deltay)
+    shortleg = min(deltax, deltay)
+    
+    # number of points for profile
+    nPoints = int(longleg)
+
+    #coordinates of points in the profile
+    x = np.linspace(x1, x2, nPoints)
+    y = np.linspace(y1, y2, nPoints)
+    #interpolated values at points of profile
+    profile = ndimage.map_coordinates(img, [y, x], output = float)
+    
+    #calculate profile metric - coefficient for lengths in profile vs pixels
+    k = np.sqrt(deltax**2+deltay**2) / longleg
+    
+
+    return metric, metric_err, profilefig
+
+def line_profile2(img, point1, point2):
+    '''define the brightness profile along the line defined by 2 points
+        across the whole image
+
+    coordinates of points with their errors are supplied as numpy arrays 
+    in notation array((y,x),(dy,dx))!
+    might as well submit other options to map_coordinates function
+
+    '''
+    y1,x1,dy1,dx1 = point1.flatten()
+    y2,x2,dy2,dx2 = point2.flatten()
+    #fast solving of trivial cases
+    if x1==x2:
+        return 1, 0, img[:,x1]
+    if y1==y2:
+        return 1, 0, img[y1,:]
+    
+    k = (y2 - y1) / (x2 - x1)
+    b = y1 - k*x1
+    
+    dk = sqrt(dy1*dy1 + dy2*dy2 + k*k*(dx1*dx1+dx2*dx2) )/np.fabs(x2-x1)
+    
+    #find ponits of intersection with image borders
+    sizey, sizex = img.shape
+    ends = {'yleft':(b,0),
+            'yright':((sizex-1)*k+b,sizex-1),
+            'xbottom':(0,-b/k),
+            'xtop':(sizey-1,(sizey-1-b)/k)}
+    for key, value in ends:
+        x,y = value
+        if 'x' in key:
+            if not (0 <= x <= sizex-1):
+                ends.pop(key)
+        elif 'y' in key:
+            if not (0 < y < sizey-1):
+                ends.pop(key)
+    assert len(ends) == 2
+    end1, end2 = ends.values
+    
 def line_profile(img, point1, point2):
     '''define the brightness profile along the line defined by 2 points
+        across the whole image
 
     coordinates of points with their errors are supplied as numpy arrays 
     in notation array((y,x),(dy,dx))!
