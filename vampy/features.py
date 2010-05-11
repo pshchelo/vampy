@@ -15,6 +15,7 @@ from numpy import sqrt, square, sum  # these are the most common ones just for c
 import numpy as np
 from scipy import ndimage
 from fitting import fit_err
+import smooth
 
 from common import PIX_ERR
 
@@ -220,7 +221,7 @@ def line_to_line(refs):
     
     return np.asarray((dist, dist_err))
 
-def extract_pix(mode, profile, sigma, minaspest, mivesest, tiplimits, darktip):
+def extract_pix(mode, profile, minaspest, mivesest, tiplimits, darktip, smoothing):
     """
     Extract positions of pipette tip, aspirated vesicle tip and outer vesicle edge
     with pixel resolution.
@@ -234,16 +235,16 @@ def extract_pix(mode, profile, sigma, minaspest, mivesest, tiplimits, darktip):
     """
     imgtype, polar = mode
     if imgtype == 'phc':
-        return extract_pix_phc(profile, sigma, minaspest, mivesest, tiplimits, darktip)
+        return extract_pix_phc(profile, minaspest, mivesest, tiplimits, darktip, smoothing)
     elif imgtype == 'dic':
         return extract_pix_dic(polar, profile, minaspest, mivesest, tiplimits, darktip)
 
-def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
+def extract_pix_phc(profile, minaspest, minvesest, tiplimits, darktip, smoothing):
     """
     Extract positions of pipette tip, aspirated vesicle tip and outer vesicle edge
     for Phase Contrast images with pixel resolution.
     @param profile: actual 1D data array to process
-    @param sigma: pre-smoothing parameter for various filters
+    @param smoothing: pre-smoothing parameters for various filters
     @param minaspest: rightmost overestimated position of aspirated tip
     @param minvesest: leftmost overestimated position of outer vesicle edge
     @param tiplimits: range where to look for a pipette tip
@@ -259,12 +260,22 @@ def extract_pix_phc(profile, sigma, minaspest, minvesest, tiplimits, darktip):
     else:
         pip = np.argmax(tipprof)
     pip += tiplimleft
-    #gradient of gauss-presmoothed image
-    grad = ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
+    
+    #smoothing parameters
+    sigma = smoothing['sigma']
+    window = smoothing['window']
+    order = smoothing['order']
+    
+    # Svitzky-Golay smoothed gradient
+    grad = smooth.savitzky_golay(profile, window, order, diff=1)
+
+#    #gradient of gauss-presmoothed image
+#    grad = smooth.gauss(profile,sigma, order=1)
+
     #aspirated vesicle edge - pixel rez
-    asp = np.argmax(grad[:minaspest])
+    asp = np.argmax(abs(grad[:minaspest]))
     #outer vesicle edge - pixel rez
-    ves = np.argmax(grad[minvesest:]) + minvesest
+    ves = np.argmax(abs(grad[minvesest:])) + minvesest
     return pip, asp, ves
 
 def extract_pix_dic(polar, profile, minaspest, minvesest, tiplimits, darktip):
@@ -312,7 +323,10 @@ def locate(argsdict):
     mode = argsdict['mode'], argsdict['polar']
 
     sigma = argsdict['sigma'] #int or float parameter for Gauss smoothing of brightness profiles    
-
+    smoothing = {'sigma':sigma,
+                 'window':11,
+                 'order':2,
+                 }
 #    int (over)estimation of the aspirated tip closest to the pipette mouth
 #    int (over)estimation of the outer vesicle edge closest to the pipette mouth
     minaspest, minvesest = argsdict['aspves']
@@ -354,7 +368,7 @@ def locate(argsdict):
         # extract brightness profile along the axis
         metric, metric_err, profile = line_profile(img, (refs[0,:]+refs[1,:])/2., (refs[2,:]+refs[3,:])/2.)
         #find features positions with pixel resolution
-        pip, asp, ves = extract_pix(mode, profile, sigma, minaspest, minvesest, tiplimits , darktip)
+        pip, asp, ves = extract_pix(mode, profile, minaspest, minvesest, tiplimits , darktip, smoothing)
         pip_err = PIX_ERR
         asp_err = PIX_ERR
         ves_err = PIX_ERR

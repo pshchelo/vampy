@@ -14,7 +14,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-from vampy import analysis, features, load
+from vampy import analysis, features, load, smooth
 
 import tension, debug, geometry
 
@@ -183,10 +183,15 @@ class VampyAnalysisPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Analysis Options')
         vsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         paramsizer = wx.FlexGridSizer(2,2)
-        self.numparams = ('sigma','mismatch')
-        self.boolparams = ('subpix','extra')
         
-        for param in self.numparams:
+        label = wx.StaticText(self, -1, 'Smoothing')
+        self.smoothchoice = wx.Choice(self, -1, choices = smooth.SMOOTHFILTERS.keys())
+        paramsizer.AddMany([(label,0,0), (self.smoothchoice,0,0)])
+        
+        self.numparams = {'order':2,'window':11,'mismatch':3}
+        self.boolparams = {'subpix':False,'extra':False}
+        
+        for param in sorted(self.numparams, reverse=1):
             label = wx.StaticText(self, -1, param)
             val = wx.TextCtrl(self, -1, '0', name = param, validator = wxutil.NumValidator('float', min = 0))
             paramsizer.AddMany([(label,0,0), (val,0,0)])
@@ -207,9 +212,12 @@ class VampyAnalysisPanel(wx.Panel):
         
     def Initialize(self):
         self.SetState(True)
-        for param in self.numparams:
+        self.smoothchoice.SetSelection(0)
+        allparams = dict(self.numparams, self.boolparams)
+        for param, val in allparams.items():
             ctrl = wx.FindWindowByName(param)
-            ctrl.SetValue('3')
+            ctrl.SetValue(val)
+        
 #            ctrl.Enable(False)
         ### temporarily disabled, since not well implemented yet
 #        for cb in self.boolparams:
