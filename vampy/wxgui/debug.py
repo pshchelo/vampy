@@ -11,10 +11,13 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
+import numpy as np
 from scipy import ndimage
 
 from libshch.common import WXPYTHON
 from libshch import wxutil
+
+from vampy import smooth
 
 class ImageDebugFrame(wx.Frame):
     def __init__(self, parent, id, img, out, extra_out):
@@ -37,10 +40,18 @@ class ImageDebugFrame(wx.Frame):
         profile = extra_out['profile']
         self.profileplot = self.figure.add_subplot(221, title = 'Axis brightness profile')
         self.profileplot.plot(profile)
-        sigma=parent.analysispanel.GetParams()['sigma']
-        grad=ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
+        
+        #TODO: change it to more smoothing techniques
+#        sigma=parent.analysispanel.GetParams()['sigma']
+#        grad=ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
+        
+        order = parent.analysispanel.GetParams()['order']
+        window = parent.analysispanel.GetParams()['window']
+        grad = np.abs(smooth.savitzky_golay(profile, window, order, 1))
+        
         multiplier = profile.max()/grad.max()/2
         grad *= multiplier
+        
         self.profileplot.plot(grad)
         self.profileplot.axvline(extra_out['pip'], color = 'blue')
         self.profileplot.axvline(extra_out['asp'], color = 'yellow')

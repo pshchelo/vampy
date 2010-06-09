@@ -8,10 +8,10 @@ from scipy import ndimage
 
 SMOOTHFILTERS = {}
 
-def savitzky_golay(y, window_size, order,diff=0):
+def savitzky_golay(y, window_size, order, diff=0):
     r"""Smooth data with a Savitzky-Golay filter.
     
-    taken from SciPy CookBook
+    adapted from SciPy CookBook
     
     The Savitzky-Golay filter removes high frequency noise from data.
     It has the advantage of preserving the original shape and

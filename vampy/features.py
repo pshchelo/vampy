@@ -57,7 +57,7 @@ def section_profile(img, point1, point2):
     k = np.sqrt(deltax**2+deltay**2) / longleg
     
 
-    return metric, metric_err, profilefig
+    return metric, metric_err, profile
 
 def line_profile2(img, point1, point2):
     '''define the brightness profile along the line defined by 2 points
@@ -262,7 +262,6 @@ def extract_pix_phc(profile, minaspest, minvesest, tiplimits, darktip, smoothing
     pip += tiplimleft
     
     #smoothing parameters
-    sigma = smoothing['sigma']
     window = smoothing['window']
     order = smoothing['order']
     
@@ -270,7 +269,7 @@ def extract_pix_phc(profile, minaspest, minvesest, tiplimits, darktip, smoothing
     grad = smooth.savitzky_golay(profile, window, order, diff=1)
 
 #    #gradient of gauss-presmoothed image
-#    grad = smooth.gauss(profile,sigma, order=1)
+#    grad = smooth.gauss(profile, order, order=1)
 
     #aspirated vesicle edge - pixel rez
     asp = np.argmax(abs(grad[:minaspest]))
@@ -322,11 +321,11 @@ def locate(argsdict):
     
     mode = argsdict['mode'], argsdict['polar']
 
-    sigma = argsdict['sigma'] #int or float parameter for Gauss smoothing of brightness profiles    
-    smoothing = {'sigma':sigma,
-                 'window':11,
-                 'order':2,
-                 }
+    # parameters for smoothing of brightness profiles
+    smoothing = {'window':argsdict['window'],
+                 'order':argsdict['order'],
+                 } 
+    
 #    int (over)estimation of the aspirated tip closest to the pipette mouth
 #    int (over)estimation of the outer vesicle edge closest to the pipette mouth
     minaspest, minvesest = argsdict['aspves']

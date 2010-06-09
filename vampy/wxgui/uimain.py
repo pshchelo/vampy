@@ -188,8 +188,11 @@ class VampyAnalysisPanel(wx.Panel):
         self.smoothchoice = wx.Choice(self, -1, choices = smooth.SMOOTHFILTERS.keys())
         paramsizer.AddMany([(label,0,0), (self.smoothchoice,0,0)])
         
-        self.numparams = {'order':2,'window':11,'mismatch':3}
+        self.numparams = {'order':'2','window':'11','mismatch':'3'}
         self.boolparams = {'subpix':False,'extra':False}
+        self.params = {}
+        self.params.update(self.numparams)
+        self.params.update(self.boolparams)
         
         for param in sorted(self.numparams, reverse=1):
             label = wx.StaticText(self, -1, param)
@@ -213,8 +216,7 @@ class VampyAnalysisPanel(wx.Panel):
     def Initialize(self):
         self.SetState(True)
         self.smoothchoice.SetSelection(0)
-        allparams = dict(self.numparams, self.boolparams)
-        for param, val in allparams.items():
+        for param, val in self.params.items():
             ctrl = wx.FindWindowByName(param)
             ctrl.SetValue(val)
         
