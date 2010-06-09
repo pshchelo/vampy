@@ -1,7 +1,7 @@
 %manuals.tex
 % user guides for software developed within VAMP (Vesicle Aspiration with MicroPipettes) project
 
-\chapter{User Guides for Vesicle Aspiration with MicroPipettes (VAMP) project}
+\chapter{User Guides for Vesicle Aspiration with MicroPipettes (VAMP) project}\label{chap:userguide}
 
 \section{LabVAMP - aspiration experiment automatization made with LabVIEW\copyright{}}\label{labvamp}
 
@@ -123,7 +123,7 @@ With this software you can automate (to some extend) the experiments on aspirati
 	\item To save a single image, choose a directory where to save them, and press ``Save One'' button. The image will be saved in the chosen directory as PNG file with filename denoting the time the image was saved with microseconds precission (HH-MM-SS.XXX.png).
 	\item To save the sequence of images choose the directory where to save them and press ``Save Seq'' button. The button remains pressed, and the ``Saving'' LED is on. To stop saving sequence press ``Save Seq'' button again so it looks depressed. Mind the limitations noted in \ref{labvamp-limits}. Images are saved with the same file name scheme as with single snapshots.
 	\item To move stages adjust the position and velocity inputs and observe changes on pressure readings. Pressure values (numbers and arrows) are color-coded with corresponding stages. The output is in kPa with 2 decimal digits since it is roughly the accuracy of the pressure sensor itself (approx 8 Pa).
-	\item Please note, that pressure sensor \emph{does not} shows the pressure applied to the pipette. It shows the pressure arising from different hight of movable and unmovable reference water vessels. Hence, with pressure sensor you should observe the \emph{difference} in pressures.
+	\item Please note, that pressure sensor \emph{does not} show the pressure applied to the pipette. It shows the pressure arising from different hight of movable and unmovable reference water vessels. Hence, with pressure sensor you should observe the \emph{difference} in pressures.
 	\item To perform automatic scanning of a pressure range:
 	\begin{enumerate}
 		\item Prepare the pressure protocol file. This must be a simple ASCII text file with 2 columns (TAB separated) of pressure values \emph{in Pa}. Each column corresponds to one stage, and so each row corresponds to one particular position of stages, and hence pressures applied to both pipettes and recorded with camera afterwards. Please note that these pressures will be applied \emph{relative} to some ``zero''-value you will choose in the course of the experiment. If you will use only one stage, fill values for another one with zeroes.
@@ -153,12 +153,12 @@ Currently LabVAMP has the following limitations:
 
 As it is now (not packaged in self-contained executable) you need the following software to be installed on your computer to run VAMPy:
 \begin{itemize}
-	\item Python 2.6.4 (the latter the better) (\url{http://www.python.org}
-	\item NumPy 1.3.0 (\url{http://www.scipy.org}
-	\item SciPy 0.7.1 (\url{http://www.scipy.org}
-	\item matplotlib 0.99.1 (\url{http://matplotlib.sourceforge.net/})
-	\item wxPython 2.9.10 (\url{http://www.wxpython.org}
-	\item Python Image Library 1.1.6 (\url{www.pythonware.com/products/pil/}) 
+	\item Python 2.6.5 (the latter the better) (\url{http://www.python.org}
+	\item NumPy 1.4.1 (\url{http://www.scipy.org}
+	\item SciPy 0.7.2 (\url{http://www.scipy.org}
+	\item matplotlib 0.99.3 (\url{http://matplotlib.sourceforge.net/})
+	\item wxPython 2.9.11 (\url{http://www.wxpython.org}
+	\item Python Image Library 1.1.7 (\url{www.pythonware.com/products/pil/}) 
 \end{itemize}
 All of the above is Open Source and freely available from respective websites. Version numbers are the ones with which the software was developed and tested, but it might also work with older versions and hopefully will work with future versions of Python language and packages. The program is cross-platform, it runs on Windows, Linux/Unix and Mac as long as all dependencies are properly installed.
 
@@ -177,42 +177,99 @@ Currently you can:
 \end{itemize}
 
 \subsection{User Interface}\label{vampy-ui}
-\begin{figure}[htbp]
-	\centering
-		\includegraphics[width=1.00\textwidth]{figs/vampy_ui.pdf}
-	\caption{VAMPy main window}
-	\label{fig:vampyui}
-\end{figure}
-\begin{enumerate}
-	\item Menu Bar - quite self-explanatory
-	\item Tool Bar - contains buttons for some action
-	\item Status Bar - when the cursor is in the image/plot it shows current coordinates 
-	\item Image panel:
-	\begin{enumerate}
-		\item Image with region lines and pipette lines
-		\item Image slider - scrolls through the images
-		\item Region sliders - control region lines
-		\item Axis sliders - control the estimation of the pipette axis position
-		\item Pipette sliders - control the estimation (radius and walls thickness) of pipette position
-	\end{enumerate}
-	\item Preprocess panel
-	\begin{enumerate}
-		\item Croppings - used to crop the image
-		\item Orientation - for rotation the image
-		\item fromnames - how to load pressures, from images filenames (checked) or from pressure file (unchecked)
-		\item darktip - what to count for pipette mouth, brightest or the darkest pixels
-		\item Mode - type of the image
-		\item Polar - type of the dic image
-	\end{enumerate}
-	\item Process panel
-	\begin{enumerate}
-		\item sigma - used for smoothing the image while processing
-		\item mismatch - the maximal difference between pixel and subpixel resolution to tolerate subpixel routine as successful
-		\item extra - output extra information
-		\item subpixel - use subpixel resolution
-		\item start - start processing 
-	\end{enumerate}
-\end{enumerate}
+\begin{itemize}
+	\item Main window (figure \ref{fig:vampymain})
+		\begin{figure}[htbp]
+			\centering
+			\includegraphics[width=1.00\textwidth]{figs/vampymain.pdf}
+			\caption{VAMPy main window}
+			\label{fig:vampymain}
+		\end{figure}
+		\begin{enumerate}
+				\item Menu Bar - quite self-explanatory
+					\begin{itemize}
+						\item File - open directory, exit application
+						\item Help - About info, Help (not implemened yet, shows the same info as ``About''
+						\item Debug - Debug single image (for analysing image recognition performance), reload (for developers - reloads math modules without restarting GUI)
+					\end{itemize}
+				\item Tool Bar - contains buttons for some actions (currently only ``Save image config'')
+				\item Image panel:
+					\begin{enumerate}
+						\item Image with region lines and pipette lines
+						\item Image toolbar (zoom, pan, adjust subplots, go back and forward between views, save plot as image - does not affect analysis, only representation)
+						\item Image slider - scrolls through the images
+						\item Region sliders - control region lines for aspirated tip, outer vesicle and pipete mouth
+						\item Axis sliders - control the estimation of the pipette axis position
+						\item Pipette sliders - control the estimation (radius and walls thickness) of pipette position
+					\end{enumerate}
+				\item Image Config panel
+					\begin{enumerate}
+						\item Croppings - used to crop the image
+						\item Orientation - for rotation the image
+						\item Mode - type of the image (phase contrast or dic)
+						\item Polar - type of the dic image
+						\item fromnames - how to load pressures, from images filenames (checked) or from pressure file (unchecked)
+						\item darktip - what to count for pipette mouth, brightest or the darkest pixels
+					\end{enumerate}
+				\item Analsis Options panel
+					\begin{enumerate}
+						\item Smoothing Type of applied smoothing (choice is not fully implemented yet, Savitzky-Golay is actually used)
+						\item window - full window size for the smoothing filter (odd integer since point plus same number of points to the left and to the right)
+						\item order - used for smoothing the image while processing (polinomial order for Sav-Gol, blurring strength for Gauss)
+						\item mismatch - the maximal difference between pixel and subpixel resolution to tolerate subpixel routine as successful \emph{(not implemented yet, ignored)}
+						\item extra - output extra information \emph{(not implemented yet, ignored)}
+						\item subpixel - use subpixel resolution \emph{(not implemented yet, ignored)}
+						\item Analyse - start processing 
+					\end{enumerate}
+				\item Status Bar - when the cursor is in the image/plot shows current coordinates 
+		\end{enumerate}
+	\item Geometry window (figure \ref{fig:vampygeom})
+		\begin{figure}[htbp]
+			\centering
+			\includegraphics[width=1.00\textwidth]{figs/vampygeom.pdf}
+			\caption{VAMPy vesicle geometry window}
+			\label{fig:vampygeom}
+		\end{figure}
+		\begin{enumerate}
+			\item Toolbar - for now only button to save all the calculated data to the ASCII file
+			\item Plots - plots of various calculated parameters - currently aspirated length, outer vesicle radius, vesicle total volume and metric (related to the tilt of the axis with 1 being perfectly horizontal). Calculaed pipette thickness is also displayed.
+			\item image toolbar - the same as on main window
+			\item status bar - the same as on main window
+		\end{enumerate}
+	\item Fitting window (figure \ref{fig:vampyfit})
+		\begin{figure}[htbp]
+			\centering
+			\includegraphics[width=1.00\textwidth]{figs/vampyfit.pdf}
+			\caption{VAMPy fitting window}
+			\label{fig:vampyfit}
+		\end{figure}
+		\begin{enumerate}
+			\item toolbar - for now only button to save calculated tensions and dilations to ASCII file (for examp,e to analyse/fit it with other tools)
+			\item plot of the dilation vs tension - both experimental points and fitted line are shown, with fitted values printed on top
+			\item range slider - choose what range of values to fit
+			\item Model parameters
+				\begin{enumerate}
+					\item Tension model used for calculation of tensions/dilations
+					\item Model to fit data with
+				\end{enumerate}
+			\item plot options - currently only choice for x coordinate as linear or log10
+			\item image toolbar - the same as on main window
+			\item status bar - the same as on main window
+		\end{enumerate}
+	\item Debug window (figure \ref{fig:vampydebug})
+		\begin{figure}[htbp]
+			\centering
+			\includegraphics[width=1.00\textwidth]{figs/vampydebug.pdf}
+			\caption{VAMPy single image debug window}
+			\label{fig:vampydebug}
+		\end{figure}
+		\begin{enumerate}
+			\item plot of various values for the single chose image - curently like axis brightness profile and its smoothed derivative with found featires positions, found positions of pipette walls, brightness profile across pipette used to find pipette walls
+			\item image toolbar - the same as on main window
+			\item status bar - the same as on main window
+		\end{enumerate}
+\end{itemize}
+
 \subsection{Work flow}\label{vampy-work}
 \begin{enumerate}
 	\item If it is the first time you run the software on this particular computer, make sure that all dependencies are installed (see \ref{vampy}).
@@ -223,7 +280,7 @@ Currently you can:
 	\item Rotate image so that \emph{pipette sticks from the left side}. This is very important!
 	\item Choose the type of image you are analyzing - phase contrast or differential contrast. For latter, choose also ``polar'' parameter, which is the side from where a ``virtual light'' is shining in your picture - if the left part is bright and the right has ``shadows'', choose ``left'' and vice versa.
 	\item Check the option 'fromnames' if the pressures must be read from image filenames (as created with LabVAMP program). If not, the pressure file used for the experiment will be asked for
-	\item decide for what will be counted as pipette mouth - it can be either a most bright part in the region of the pipette mouth or the most dark one ('darktip' unchecked or checked respectively) - it depend on the image itself, you might want to play with it to see where results of image analysis are better
+	\item decide for what will be counted as pipette mouth - it can be either a most bright part in the region of the pipette mouth or the most dark one ('darktip' unchecked or checked respectively) - it depends on the image itself, you might want to play with it to see where results of image analysis are better
 	\item Adjust region, axis and pipette sliders so that on every image in the stack:
 	\begin{itemize}
 		\item Dashed line goes approximately along the pipette axis
@@ -235,12 +292,14 @@ Currently you can:
 	\item You can save image settings - crop, rotation, position of sliders etc to use them next time you open these images, just press ``Save image info'' button in the toolbar. Settings will be saved as a simple tab separated ASCII-file ``vampy.cfg'' in the folder from where current images were loaded.
 	\item Other parameters that affect the analysis:
 	\begin{itemize}
-		\item ``Sigma''- parameter used in various places for smoothing the image, default value ``3'' was found to be quite reasonable.
+		\item ``smoothing'' - what algorithm to use for smoothing and derivating the brightness profile
+		\item ``window''- full width of the window in the smoothong filters that need it, otherwise ignored
+		\item ``order''- smoothing strength, has different meaning in different filters (for example polinomila order in Savitzky-Golay, strength of blur in Gaussian)
 		\item ``Extra'' - return a lot of additional info from image analysis and make some additional plots (not fully implemented yet, thus disabled)
 		\item ``Subpix'' - check to have a fitting routines for subpixel resolution (not fully implemented yet, thus disabled).
 		\item ``Mismatch'' - determines when to discard the subpixel value for pixel value (as with subpixel resolution itself, not fully implemented yet, thus disabled).
 	\end{itemize}
-	\item Press the ``Start'' button. If you haven't checked ``fromnames'' check box, you will be prompted for the location of the pressure protocol file.
+	\item Press the ``Analyse'' button. If you haven't checked ``fromnames'' check box, you will be prompted for the location of the pressure protocol file.
 	\item The program automatically determines the situation when there are more than one image for each pressure and handles it correctly if all images are present, otherwise it produces an error message.
 	\item In any case in the next dialog you will also be prompted for the next parameters:
 	\begin{itemize}
@@ -249,9 +308,10 @@ Currently you can:
 		\item Pressure accuracy - needed for the calculation of tension accuracy (and thus accuracy of output parameters of fitting), determined by the accuracy of the stages moving the water vessels. Default is for PI M-535.21 linear stage.
 	\end{itemize}
 	\item After some processing time two windows will pop out - ``Vesicle Geometry'' and ``Dilation vs Tension''
-	\item ``Vesicle Geometry'' shows you plots of various extracted/calculated parameters, such as measured pipette diameter, total vesicle volume, area, outer vesicle radius etc (might change from version to version).
+	\item ``Vesicle Geometry'' shows you plots of various extracted/calculated parameters already averaged between images corresponding to the same pressure, such as measured pipette diameter, total vesicle volume, area, outer vesicle radius etc  .
 	\item ``Dilation vs Tension'' window presents the corresponding plot together with its fit with one of the chosen models/algorithms, with fitted value printed on top of the plot.
 	\item By using sliders you can control the region which is fitted.
+	\item You can also inspect how well the image recognition worked on any particular image by choosing ``Debug->Debug image'' from the menu of the main window. The Debug window will open, allowing you to check the algorithm performance.
 \end{enumerate}
 
 \subsection{Limitations}\label{vampy-limits}
