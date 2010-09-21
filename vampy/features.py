@@ -56,7 +56,9 @@ def section_profile(img, point1, point2):
     #calculate profile metric - coefficient for lengths in profile vs pixels
     k = np.sqrt(deltax**2+deltay**2) / longleg
     
+    metric = sqrt(1-k**2)
 
+    metric_err = PIX_ERR
     return metric, metric_err, profile
 
 def line_profile2(img, point1, point2):
@@ -278,13 +280,16 @@ def extract_pix_phc(profile, minaspest, minvesest, tiplimits, darktip, smoothing
     return pip, asp, ves
 
 def extract_pix_dic(polar, profile, minaspest, minvesest, tiplimits, darktip):
-    pip = np.argmax(profile[minaspest:minvesest])+minaspest
+    tiplimleft, tiplimright = tiplimits
+    tipprof = profile[tiplimleft:tiplimright]
+    pip = np.argmax(tipprof)+tiplimleft
+    
     if polar == 'right':
-        asp = np.argmax(profile[:minaspest])
-        ves = np.argmin(profile[minvesest:]) + minvesest
-    elif polar == 'left':
         asp = np.argmin(profile[:minaspest])
         ves = np.argmax(profile[minvesest:]) + minvesest
+    elif polar == 'left':
+        asp = np.argmax(profile[:minaspest])
+        ves = np.argmin(profile[minvesest:]) + minvesest
     return pip, asp, ves
 
 def extract_subpix(profile, pip, asp, ves, mode):
