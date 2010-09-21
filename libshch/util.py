@@ -31,8 +31,8 @@ def grid_size(N):
     with the resulting grid being as quadratic as possible.
     @param N: number of elements to put on a grid
     """
-    n = math.ceil(math.sqrt(N))
-    m = math.ceil(N/float(n))
+    n = int(math.ceil(math.sqrt(N)))
+    m = int(math.ceil(N/float(n)))
     return n,m
 
 def get_gradient(x, sigma):
