@@ -79,14 +79,14 @@ def averages1d(data, sd=None):
     return (mean, sem), (wmean, wsem)
     
 def weighted_mean(x, sd):
-    '''Calculate mean weighted with standard errors
-    
+    '''Calculate weighted mean with inverse of variences as weights and 
+    unbiased standard error of that weighted mean
     '''
     N = len(x) #number of samples
     w = 1/(sd*sd) # weights
     w = w/w.sum() #normalized weights
     w2 = np.sum(w*w)
     wmean = np.average(x, weights=w) # weighted mean
-    wssd2 = 1/(1-w2)*np.sum(w*(x-wmean)*(x-wmean)) # variance estimator for weighted mean (unbiased)
-    wsem = np.sqrt(wssd2/N) # standard error of weighted mean (unbiased)
-    return wmean, wsem
+    varwmean = 1/(1-w2)*np.sum(w*(x-wmean)*(x-wmean)) # variance estimator for weighted mean (unbiased)
+    sewmean = np.sqrt(varwmean/N) # standard error of weighted mean (unbiased)
+    return wmean, sewmean
