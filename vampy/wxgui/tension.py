@@ -201,7 +201,13 @@ class TensionsFrame(wx.Frame):
             return
         datname = savedlg.GetPath()
         savedlg.Destroy()
-        writer = output.DataWriter(self.data, title='Vesicle tensions, %s model'%self.tensmodelchoice.GetStringSelection())
+        header = 'Vesicle tensions, %s model\n'%self.tensmodelchoice.GetStringSelection()
+        for key in self.fittedparams:
+            paramname, texparamname, paramdim, texparamdim = key
+            value, error = self.fittedparams[key]
+            header += '#%s = %f +- %f %s\n'%(paramname, value, error, paramdim)
+        header +='#'
+        writer = output.DataWriter(self.data, title=header)
         mesg = writer.write_file(datname)
         if mesg:
             self.GetParent().OnError(mesg)
@@ -225,12 +231,12 @@ class TensionsFrame(wx.Frame):
         self.fitplot.set_data(x, func(result['fit'], x))
         self.fitplot.set_label(self.fitmodelchoice.GetStringSelection())
         
-        fittedparams = dict(zip(result['params'], zip(result['fit'], result['sd_fit'])))
+        self.fittedparams = dict(zip(result['params'], zip(result['fit'], result['sd_fit'])))
         
         title = ''
-        for key in fittedparams.keys():
+        for key in self.fittedparams.keys():
             paramname, texparamname, paramdim, texparamdim = key
-            value, error = fittedparams[key]
+            value, error = self.fittedparams[key]
             title+='%s = %.2f $\\pm$ %.2f %s'%(texparamname, value, error, texparamdim)
             title += '\t'
         
