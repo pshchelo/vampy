@@ -266,10 +266,13 @@ def extract_pix_phc(profile, minaspest, minvesest, tiplimits, darktip, smoothing
     #smoothing parameters
     window = smoothing['window']
     order = smoothing['order']
-    
+    mode = smoothing['mode']
     # Svitzky-Golay smoothed gradient
-    grad = smooth.savitzky_golay(profile, window, order, diff=1)
-
+#    grad = smooth.savitzky_golay(profile, window, order, diff=1)
+    # Smoothed gradient
+    grad = smooth.smooth1d(profile, mode, order, window, diff=1)
+    
+    
 #    #gradient of gauss-presmoothed image
 #    grad = smooth.gauss(profile, order, order=1)
 
@@ -327,7 +330,8 @@ def locate(argsdict):
     mode = argsdict['mode'], argsdict['polar']
 
     # parameters for smoothing of brightness profiles
-    smoothing = {'window':argsdict['window'],
+    smoothing = {'mode':argsdict['smoothing'],
+                 'window':argsdict['window'],
                  'order':argsdict['order'],
                  } 
     

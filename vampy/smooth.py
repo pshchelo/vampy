@@ -8,7 +8,7 @@ from scipy import ndimage
 
 SMOOTHFILTERS = {}
 
-def savitzky_golay(y, window_size, order, diff=0):
+def savitzky_golay(y, order, window_size, diff=0):
     r"""Smooth data with a Savitzky-Golay filter.
     
     adapted from SciPy CookBook
@@ -78,11 +78,19 @@ def savitzky_golay(y, window_size, order, diff=0):
     firstvals = y[0] - np.abs( y[1:half_window+1][::-1] - y[0] )
     lastvals = y[-1] + np.abs(y[-half_window-1:-1][::-1] - y[-1])
     y = np.concatenate((firstvals, y, lastvals))
-
     return np.convolve(m, y, mode='valid')
+
 SMOOTHFILTERS['Savitzky-Golay'] = savitzky_golay
 
-def gauss(y, sigma, axis=-1, order=0, output=None, mode='reflect', cval=0.0):
-    return ndimage.gaussian_filter1d(y, sigma, axis, order, output, mode, cval)
+def gauss(y, sigma, window=0, diff=0, axis=-1, output=None, mode='reflect', cval=0.0):
+    '''Gauss smoothing
+    
+    window is a dumb parameter for compatibility with windowed filters'''
+    return ndimage.gaussian_filter1d(y, sigma, axis, diff, output, mode, cval)
+
 SMOOTHFILTERS['Gauss'] = gauss
 
+def smooth1d(y, mode, order, window, diff=0, **kwargs):
+    filter = SMOOTHFILTERS[mode]
+    smoothed = filter(y, order, window, diff, **kwargs)
+    return smoothed

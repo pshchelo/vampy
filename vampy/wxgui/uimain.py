@@ -9,7 +9,7 @@ from numpy import empty
 
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
-from matplotlib import cm as colormaps
+from matplotlib import cm
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
@@ -202,6 +202,8 @@ class VampyAnalysisPanel(wx.Panel):
         for param in self.boolparams:
             cb = wx.CheckBox(self, -1, param+"?", style=wx.ALIGN_LEFT, name=param)
             paramsizer.Add(cb,0,0)
+        subpixcb = self.FindWindowByName('subpix')
+        subpixcb.Bind(wx.EVT_CHECKBOX, self.OnSubpix)
         
         vsizer.Add(paramsizer)
         
@@ -219,8 +221,6 @@ class VampyAnalysisPanel(wx.Panel):
         for param, val in self.params.items():
             ctrl = wx.FindWindowByName(param)
             ctrl.SetValue(val)
-        
-#            ctrl.Enable(False)
         ### temporarily disabled, since not well implemented yet
 #        for cb in self.boolparams:
 #            ctrl = wx.FindWindowByName(cb)
@@ -232,13 +232,23 @@ class VampyAnalysisPanel(wx.Panel):
     
     def GetParams(self):
         params = {}
+        params['smoothing']=self.smoothchoice.GetStringSelection()
         for param in self.numparams:
             ctrl = wx.FindWindowByName(param)
             params[param] = float(ctrl.GetValue())
         for param in self.boolparams:
             params[param] = wx.FindWindowByName(param).GetValue()  
         return params
-
+    
+    def OnSubpix(self, evt):
+        evt.Skip()
+        mismatchctrl = self.FindWindowByName('mismatch')
+        subpix = self.FindWindowByName('subpix').GetValue()
+        if subpix:
+            mismatchctrl.SetState(True)
+        else:
+            mismatchctrl.SetState(False)
+            
 class VampyImagePanel(wx.Panel):
     '''Shows image and sliders affecting image'''
     def __init__(self, parent, id):
@@ -428,8 +438,7 @@ class VampyImagePanel(wx.Panel):
         self.axes.plot(xdots, line3, 'y-')
         self.axes.plot(xdots, line4, 'y-')
         
-        self.axes.imshow(self.Imgs[ImgNo-1], aspect='equal', cmap=colormaps.gray)
-        
+        self.axes.imshow(self.Imgs[ImgNo-1], aspect='equal', cmap=cm.get_cmap('gray'))        
 #        self.im.set_array(self.Imgs[ImgNo-1])
         
 #        self.axes.relim()

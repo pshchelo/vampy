@@ -6,13 +6,10 @@ import wx
 
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
-from matplotlib import cm as colormaps
+from matplotlib import cm
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
-
-import numpy as np
-from scipy import ndimage
 
 from libshch.common import WXPYTHON
 from libshch import wxutil
@@ -47,7 +44,9 @@ class ImageDebugFrame(wx.Frame):
         
         order = parent.analysispanel.GetParams()['order']
         window = parent.analysispanel.GetParams()['window']
-        grad = np.abs(smooth.savitzky_golay(profile, window, order, 1))
+        smoothmode = parent.analysispanel.GetParams()['smoothing']
+        grad = smooth.smooth1d(profile, smoothmode, order, window, diff=1)
+#        grad = np.abs(smooth.savitzky_golay(profile, window, order, 1))
         
         multiplier = profile.max()/grad.max()/2
         grad *= multiplier
@@ -62,7 +61,7 @@ class ImageDebugFrame(wx.Frame):
         for ref in refs:
             self.imgplot.plot([ref[0][1]], [ref[0][0]], 'yo') # due to format of refs
             
-        self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = colormaps.gray)
+        self.imgplot.imshow(img, aspect = 'equal', extent = None, cmap = cm.get_cmap('gray'))
 
         self.pipprofile1 = self.figure.add_subplot(223, title = 'Left pipette section')
         xleft = refs[0][0][1]
