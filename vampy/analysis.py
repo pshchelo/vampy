@@ -173,9 +173,9 @@ def tension_henriksen(P, dP, scale, geometrydict):
 
     delta = 1.5*beta*Rp/Rv[0]
 
-    Beta = beta+(1-delta)**(2/3)-1
+    Beta = beta+(1-delta)**(2/3.)-1
     
-    Delta = 1/(1-delta)**(1/3)
+    Delta = 1/(1-delta)**(1/3.)
     
     alpha=gamma*Beta
     dalpha_dRp = -0.5*Beta*(L[0]+Rp)/Rv[0]**2 + gamma*beta*(1/Rp-2*Delta/Rv[0])
