@@ -139,6 +139,7 @@ def tension_evans(P, dP, scale, geometrydict):
     
     alpha = A/A[0]-1
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
+    alpha_err[0] = 0
     
     tensiondata = {}
     tensiondata['dilation'] = np.asarray((alpha,alpha_err))
@@ -151,7 +152,7 @@ TENSMODELS['Evans'] = tension_evans
 def tension_henriksen(P, dP, scale, geometrydict):
     """
     Calculate tensions based on geometry and pressures
-    according to the model used in Henriksen2004
+    according to the model used in Henriksen2004 Appendix B1
     @param P: pressure values corresponding to images, as numpy array
     @param dP: pressure accuracy 
     @param scale: physical scale of the image (um/pixel)
@@ -161,38 +162,98 @@ def tension_henriksen(P, dP, scale, geometrydict):
     Rp, dRp = geometrydict['piprad']
     L, dL = geometrydict['aspl']
     
+    L0 = L[0]
     dL0 = dL[0]
-    dL = sqrt(dL**2+dL[0]**2)
+    
+    Rv0 = Rv[0]
+    dRv0 = dRv[0]
     
     tau = 0.5*P/(1/Rp-1/Rv)*scale
-    tau_err = scale*sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
+    dtau = scale*sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
     
-    gamma = 1 - (2*Rp*L[0]+Rp**2)/(4*Rv[0]**2)
+    B = 0.5*Rp*(L-L0)/Rv0**2
+    
+    dBdL = 0.5*Rp/Rv0**2
+    dBdL0 = -dBdL
+    dBdRp = B/Rp
+    dBdRv0 = -2*B/Rv0
 
-    beta = 0.5*Rp*(L-L[0])/Rv[0]**2
-
-    delta = 1.5*beta*Rp/Rv[0]
-
-    Beta = beta+(1-delta)**(2/3.)-1
+    G = 1 - 0.25*(2*Rp*L0+Rp**2)/Rv0**2
     
-    Delta = 1/(1-delta)**(1/3.)
+    dGdL0 = -dBdL0
+    dGdRp = -0.5*(L0+Rp)/Rv0**2
+    dGdRv0 = 0.5*(2*L0*Rp+Rp**2)/Rv0**3
     
-    alpha=gamma*Beta
-    dalpha_dRp = -0.5*Beta*(L[0]+Rp)/Rv[0]**2 + gamma*beta*(1/Rp-2*Delta/Rv[0])
-    dalpha_dRv = 2*Beta*(1-gamma)/Rv[0]**2+gamma*beta*(3*Rp*Delta/Rv[0]-2/Rv[0])
-    dalpha_dL0 = -0.5*Rp*Beta/Rv[0]**2
-    dalpha_dL = 0.5*gamma*Rp*(1-Rp*Delta*Rv[0])/Rv[0]**2
+    C = 1 - 1.5*Rp*B/Rv0
+    dCd = 2*C**(-1./3)/3.
     
-    alpha_err = sqrt(dalpha_dRp**2*dRp**2+dalpha_dRv**2*dRv**2+
-                      dalpha_dL**2*dL**2+dalpha_dL0**2*dL0**2)
+    dCdL = -1.5*Rp*dBdL/Rv0
+    dCdL0 = -1.5*Rp*dBdL0/Rv0
+    dCdRp = -3*B/Rv0
+    dCdRv0 = -4.5*Rp*B/Rv0**2
+    
+    a = G * ( B + C**(2/3.) - 1)
+    
+    dadL = G * (dBdL+dCd*dCdL)
+    dadL0 = (B+C**(2/3.)-1)*dGdL0 + G*(dBdL0 + dCd*dCdL0)
+    dadRp = (B+C**(2/3.)-1)*dGdRp + G*(dBdRp + dCd*dCdRp)
+    dadRv0 = (B+C**(2/3.)-1)*dGdRv0 + G*(dBdRv0 + dCd*dCdRv0)
+       
+    da = sqrt(dadL**2*dL**2 + dadL0**2*dL0**2 + dadRp**2*dRp**2+dadRv0**2*dRv0**2)
+    da[0] = 0 ##uncertainty in L[0] - L0 === 0
     
     tensiondata = {}
-    tensiondata['dilation'] = np.asarray((alpha, alpha_err))
-    tensiondata['tension'] = np.asarray((tau/1000.0, tau_err/1000.0)) #in mN/m
+    tensiondata['dilation'] = np.asarray((a, da))
+    tensiondata['tension'] = np.asarray((tau/1000.0, dtau/1000.0)) #in mN/m
     tensiondata['tensdim'] = ('mN/m',r'$10^{-3}\frac{N}{m}$')
     return tensiondata
 
-TENSMODELS['alpha corr']=tension_henriksen
+TENSMODELS['Henriksen']=tension_henriksen
+
+def tension_henriksen_simple(P, dP, scale, geometrydict):
+    """
+    Calculate tensions based on geometry and pressures
+    according to the model used in Henriksen2004
+    this is nan approximation of full model for the case Rp << Rv
+    @param P: pressure values corresponding to images, as numpy array
+    @param dP: pressure accuracy 
+    @param scale: physical scale of the image (um/pixel)
+    @param geometrydict: dictionary of various vesicle geometry data
+    """
+    Rv, dRv = geometrydict['vesrad']
+    Rp, dRp = geometrydict['piprad']
+    L, dL = geometrydict['aspl']
+    
+    L0 = L[0]
+    dL0 = dL[0]
+    
+    Rv0 = Rv[0]
+    dRv0 = dRv[0]
+    
+    tau = 0.5*P/(1/Rp-1/Rv)*scale
+    dtau = scale*sqrt(dP*dP/4+tau*tau*(dRp*dRp/Rp**4+dRv*dRv/Rv**4))/fabs(1/Rp-1/Rv)
+    
+    G = 1 - (2*Rp*L0+Rp**2)/(4*Rv0**2)
+
+    B = Rp/Rv0**2 - Rp**2/Rv0**3
+    
+    a = 0.5*B*G*(L-L0)
+    
+    dadL = 0.5*B*G
+    dadL0 = 0.5*B*(-G - Rp/(2*Rv0**2)*(L-L0))
+    dadRp = 0.5*(L-L0) * ( G*(1/Rv0**2-2*Rp/Rv0**3) - B*(L0+Rp)/(2*Rv0**2) )
+    dadRv0 = 0.5*(L-L0) * ( G*( 3*Rp**2/Rv0**4 - 2*Rp/Rv0**3) + B*(2*Rp*L0+Rp**2)/(2*Rv0**3) )
+    
+    da = sqrt(dadL**2*dL**2 + dadL0**2*dL0**2 + dadRp**2*dRp**2+dadRv0**2*dRv0**2)
+    da[0] = 0 ##uncertainty in L[0] - L0 === 0
+    
+    tensiondata = {}
+    tensiondata['dilation'] = np.asarray((a, da))
+    tensiondata['tension'] = np.asarray((tau/1000.0, dtau/1000.0)) #in mN/m
+    tensiondata['tensdim'] = ('mN/m',r'$10^{-3}\frac{N}{m}$')
+    return tensiondata
+
+TENSMODELS['Henriksen simpler']=tension_henriksen_simple
 
 ### alpha ~ log(tau), simple model
 def dilation_bend_evans(tau, slope, intercept):
