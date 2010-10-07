@@ -139,7 +139,7 @@ def tension_evans(P, dP, scale, geometrydict):
     
     alpha = A/A[0]-1
     alpha_err = sqrt(dA*dA+(A*dA[0]/A[0])**2)/A[0]
-    alpha_err[0] = 0
+#    alpha_err[0] = 0
     
     tensiondata = {}
     tensiondata['dilation'] = np.asarray((alpha,alpha_err))
@@ -200,7 +200,7 @@ def tension_henriksen(P, dP, scale, geometrydict):
     dadRv0 = (B+C**(2/3.)-1)*dGdRv0 + G*(dBdRv0 + dCd*dCdRv0)
        
     da = sqrt(dadL**2*dL**2 + dadL0**2*dL0**2 + dadRp**2*dRp**2+dadRv0**2*dRv0**2)
-    da[0] = 0 ##uncertainty in L[0] - L0 === 0
+#    da[0] = 0 ##uncertainty in L[0] - L0 === 0
     
     tensiondata = {}
     tensiondata['dilation'] = np.asarray((a, da))
@@ -245,7 +245,7 @@ def tension_henriksen_simple(P, dP, scale, geometrydict):
     dadRv0 = 0.5*(L-L0) * ( G*( 3*Rp**2/Rv0**4 - 2*Rp/Rv0**3) + B*(2*Rp*L0+Rp**2)/(2*Rv0**3) )
     
     da = sqrt(dadL**2*dL**2 + dadL0**2*dL0**2 + dadRp**2*dRp**2+dadRv0**2*dRv0**2)
-    da[0] = 0 ##uncertainty in L[0] - L0 === 0
+#    da[0] = 0 ##uncertainty in L[0] - L0 === 0
     
     tensiondata = {}
     tensiondata['dilation'] = np.asarray((a, da))
