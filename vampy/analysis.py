@@ -208,7 +208,7 @@ def tension_henriksen(P, dP, scale, geometrydict):
     tensiondata['tensdim'] = ('mN/m',r'$10^{-3}\frac{N}{m}$')
     return tensiondata
 
-TENSMODELS['Henriksen']=tension_henriksen
+TENSMODELS['Henriksen full']=tension_henriksen
 
 def tension_henriksen_simple(P, dP, scale, geometrydict):
     """
