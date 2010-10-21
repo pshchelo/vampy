@@ -10,35 +10,36 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as Navigat
 from matplotlib.figure import Figure
 
 from vampy.common import DATWILDCARD
-from vampy import analysis, output
+from vampy import analysis, load, output
 from vampy.fitting import TENSFITMODELS
 
-from libshch.common import WXPYTHON, SAVETXT
+from libshch.common import PLOT, SAVETXT, OPENTXT
 from libshch import wxutil
 
 class TensionsFrame(wx.Frame):
     def __init__(self, parent, id, *inputdata):
         wx.Frame.__init__(self, parent, id, title = 'Dilation vs Tension')
+        
         self.panel = wx.Panel(self, -1)
-        
-        self.inputdata = inputdata
-        
-        self.MakeModelPanel()
-        self.MakePlotOptPanel()
-        
-        self.data = self.TensionModel(inputdata)
-        
-        self.statusbar = wxutil.PlotStatusBar(self)
-        self.SetStatusBar(self.statusbar)
-        
+
         self.toolbar = wxutil.SimpleToolbar(self, *self.ToolbarData())
         self.SetToolBar(self.toolbar)
         self.toolbar.Realize()
         
-        self.MakeImagePanel()
+        self.statusbar = wxutil.PlotStatusBar(self)
+        self.SetStatusBar(self.statusbar)
+               
+        self.MakeModelPanel()
+        self.MakePlotOptPanel()
         
-        title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
-        self.SetTitle(title)
+        if inputdata:
+            self.inputdata = inputdata
+            self.data = self.TensionData(inputdata)
+        else:
+            self.data={}
+            self.data['tensdim'] = ('K units',r'$K$ units')
+        
+        self.MakeImagePanel()
         
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(self.imgbox, 1, wx.GROW)
@@ -52,11 +53,12 @@ class TensionsFrame(wx.Frame):
         
         self.panel.SetSizer(hbox)
         
-        self.SetFrameIcons(WXPYTHON, (16,24,32))
+        self.SetFrameIcons(PLOT, (16,24,32))
         hbox.Fit(self)
         self.init_plot()
+        
         self.Draw()
-    
+        
     def MakeImagePanel(self):
         self.figure = Figure(facecolor = wxutil.rgba_wx2mplt(self.panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(self.panel, -1, self.figure)
@@ -110,9 +112,13 @@ class TensionsFrame(wx.Frame):
         self.SetIcons(ib)
 
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (24,24))
-        return ((
-                (bmpsavetxt, 'Save Data File', 'Save Data File', False),
+        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (32,32))
+        bmpopentxt = wx.ArtProvider.GetBitmap(OPENTXT, wx.ART_TOOLBAR, (32,32))
+        return (
+                (
+                (bmpopentxt, 'Open Data file', 'Open tensions data file', False),
+                 self.OnOpen),(
+                (bmpsavetxt, 'Save Data File', 'Save tensions data file', False),
                  self.OnSave),
                 )
         
@@ -122,7 +128,7 @@ class TensionsFrame(wx.Frame):
         labeltensmodel = wx.StaticText(self.modelpanel, -1, 'Tension')
         self.tensmodelchoice = wx.Choice(self.modelpanel, -1, choices = analysis.TENSMODELS.keys())
         self.tensmodelchoice.SetSelection(0)
-        self.Bind(wx.EVT_CHOICE, self.OnTensionModel, self.tensmodelchoice)
+        self.Bind(wx.EVT_CHOICE, self.OnChangeTensionModel, self.tensmodelchoice)
         
         labelfit = wx.StaticText(self.modelpanel, -1, 'Fitting')
         self.fitmodelchoice = wx.Choice(self.modelpanel, -1, choices = TENSFITMODELS.keys())
@@ -163,7 +169,7 @@ class TensionsFrame(wx.Frame):
         
         self.plotoptpanel.SetSizer(plotoptbox)
     
-    def TensionModel(self, inputdata):
+    def TensionData(self, inputdata):
         modelname = self.tensmodelchoice.GetStringSelection()
         model = analysis.TENSMODELS[modelname]
         tensiondata = model(*inputdata)
@@ -175,8 +181,8 @@ class TensionsFrame(wx.Frame):
         self.Draw()
         evt.Skip()
         
-    def OnTensionModel(self, evt):
-        self.data = self.TensionModel(self.inputdata)
+    def OnChangeTensionModel(self, evt):
+        self.data = self.TensionData(self.inputdata)
         self.Draw()
         evt.Skip()
     
@@ -212,7 +218,30 @@ class TensionsFrame(wx.Frame):
         if mesg:
             self.GetParent().OnError(mesg)
         evt.Skip()
+    
+    def OnOpen(self, evt):
+        fileDlg = wx.FileDialog(self, message='Choose Dilations/Tensions file...',
+                                 wildcard=DATWILDCARD, style=wx.FD_OPEN)
+        if fileDlg.ShowModal() != wx.OK:
+            fileDlg.Destroy()
+            return
+        filename = fileDlg.GetPath()
+        fileDlg.Destroy()
         
+        self.data, msg = load.read_tensions(filename)
+        if msg:
+            self.OnError(msg)
+            return
+        
+    def OnError(self, msg):
+        """
+        Display an error dialog
+        @param msg: error message to display (type = string)
+        """
+        errDlg = wx.MessageDialog(self, msg, "Error!", wx.ICON_ERROR)
+        errDlg.ShowModal()
+        errDlg.Destroy()
+    
     def Draw(self):
         low, high = self.slider.GetValue()
         x, sx = self.data['tension'][:,low-1:high]
