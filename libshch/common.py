@@ -13,5 +13,10 @@ def _get_res_file(filename):
 
 WXPYTHON = _get_res_file('wxpython.png')
 SAVETXT = _get_res_file('savetxt.png')
+OPENTXT = _get_res_file('document-open.png')
+OPENFOLDER = _get_res_file('folder-open.png')
+MICROSCOPE = _get_res_file('Microscope.png')
+PLOT = _get_res_file('Plot.png')
+MEASURE = _get_res_file('Measure.png')
 
-CUSTOMART = [SAVETXT, WXPYTHON]
+CUSTOMART = [SAVETXT, WXPYTHON, OPENTXT, OPENFOLDER, MICROSCOPE, MEASURE, PLOT]

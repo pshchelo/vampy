@@ -60,8 +60,10 @@ class PlotStatusBar(wx.StatusBar):
 class SimpleToolbar(wx.ToolBar):
     def __init__(self, parent, *buttons):
         """
+        Construct and populate a simple wx.ToolBar 
         
         @param buttons: tuple or list of ((Bitmap, shortName, longName, isToggle), Handler)
+        
         """
         
         wx.ToolBar.__init__(self, parent)
