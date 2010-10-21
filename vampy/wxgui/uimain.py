@@ -20,7 +20,7 @@ import tension, debug, geometry
 
 from libshch import wxutil, util
 
-from libshch.common import WXPYTHON, SAVETXT 
+from libshch.common import MICROSCOPE, SAVETXT, OPENFOLDER, OPENTXT
 from vampy.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
 from vampy.common import DEFAULT_SCALE, DEFAULT_PRESSACC
 
@@ -487,7 +487,7 @@ class VampyFrame(wx.Frame):
         self.Fit()
         self.Centre()
         
-        self.SetFrameIcons(WXPYTHON, (16,24,32))
+        self.SetFrameIcons(MICROSCOPE, (16,24,32))
         
     def SetFrameIcons(self, artid, sizes):
         ib = wx.IconBundle()
@@ -496,9 +496,14 @@ class VampyFrame(wx.Frame):
         self.SetIcons(ib)
     
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (24,24))
-        return ((
-                (bmpsavetxt, 'Save Image Info', 'Save image info', False),
+        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (32,32))
+        bmpopenfolder = wx.ArtProvider.GetBitmap(OPENFOLDER, wx.ART_TOOLBAR, (32,32))
+        return (
+                (
+                (bmpopenfolder, 'Open Images Folder', 'Open folder with images to analyse', False),
+                 self.OnOpenFolder),
+                (
+                (bmpsavetxt, 'Save Image Info', 'Save image Settings file', False),
                  self.OnSave),
                 )
     
