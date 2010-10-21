@@ -63,21 +63,26 @@ def read_pressures_file(filename, stage):
     @param filename:
     @param stage:
     """
-    mesg = None
-    presfile = open(filename, 'r')
-    lines = presfile.readlines()
-    presfile.close()
-    pressures = []
-    for line in lines:
-        if line[0] != '#':
-            elements = line.split()
-            try:
-                pressure = float(elements[stage])
-            except(ValueError):
-                mesg = 'Wrong pressure file format! (%s)'%line
-                return None, mesg
-            pressures.append(pressure)
-    return np.asarray(pressures), mesg
+#    presfile = open(filename, 'r')
+#    lines = presfile.readlines()
+#    presfile.close()
+#    pressures = []
+#    for line in lines:
+#        if line[0] != '#':
+#            elements = line.split()
+#            try:
+#                pressure = float(elements[stage])
+#            except(ValueError):
+#                mesg = 'Wrong pressure file format! (%s)'%line
+#                return None, mesg
+#            pressures.append(pressure)
+    try:
+        pressures = np.loadtxt(filename, unpack=1)
+    except IOError, value:
+        return None, value
+    except ValueError, value:
+        return None, value
+    return np.asarray(pressures)[stage-1], None
 
 def read_pressures_filenames(filenames, stage):
     mesg = None
@@ -109,3 +114,13 @@ def read_pressures_filenames(filenames, stage):
         mesg = 'Different number of images per pressure!'
         return None, None, mesg
     return np.asarray(pressure), aver, mesg
+
+def read_tensions(filename):
+    try:
+        data = np.loadtxt(filename, unpack=True)
+    except IOError, value:
+        return None, value
+    except ValueError, value:
+        return None, value
+    tensiondata={}
+    return tensiondata
