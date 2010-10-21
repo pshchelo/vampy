@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 from vampy import output
 from vampy.common import DATWILDCARD
 
-from libshch.common import WXPYTHON, SAVETXT
+from libshch.common import MEASURE, SAVETXT, OPENTXT
 from libshch import util, wxutil
 
 class GeometryFrame(wx.Frame):
@@ -62,7 +62,7 @@ class GeometryFrame(wx.Frame):
         panel.Fit()
         title = '%s : %s - %s'%(parent.imagedate, parent.imagedir, self.GetTitle())
         self.SetTitle(title)
-        self.SetFrameIcons(WXPYTHON, (16,24,32))
+        self.SetFrameIcons(MEASURE, (16,24,32))
         self.canvas.draw()
     
     def SetFrameIcons(self, artid, sizes):
@@ -72,11 +72,17 @@ class GeometryFrame(wx.Frame):
         self.SetIcons(ib)
         
     def ToolbarData(self):
-        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (24,24))
-        return ((
-                (bmpsavetxt, 'Save Data File', 'Save Dat File', False),
+        bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (32,32))
+        bmpopentxt = wx.ArtProvider.GetBitmap(OPENTXT, wx.ART_TOOLBAR, (32,32))
+        return (
+                (
+                (bmpopentxt, 'Open Data file', 'Open geometry data file', False),
+                 self.OnOpen),(
+                (bmpsavetxt, 'Save Data File', 'Save geometry data file', False),
                  self.OnSave),
                 )
+    def OnOpen(self, evt):
+        pass
         
     def OnSave(self, evt):
         savedlg = wx.FileDialog(self, 'Save data', self.GetParent().folder,
