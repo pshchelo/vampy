@@ -7,7 +7,6 @@ extracted from vesicle aspiration images.
 more details are documented in vamp.tex
 
 prerequisites - installed numpy, scipy
-TODO: check for error values in dilation (too big?!)
 '''
 from numpy import pi, sqrt, square, log, fabs  # most common for convenience
 import numpy as np
@@ -100,14 +99,23 @@ def get_geometry(argsdict):
     return results, None
 
 class TensionFitModel(object):
-    def __init__(self, datax, datay, model):
+    def __init__(self, datax, datay, model, tau_units):
         self.x, self.x_err = datax
         self.y, self.y_err = datay
         self.set_model(model)
+        self._set_tau_dim(tau_units)
     
     def set_model(self, model):
         self.model = model
             
+    def _set_tau_dim(self, tau_units):
+        params = self.model.meta['params']
+        for i in range(len(params)):
+            val = params[i]
+            if val[2] == 'TAU_UNITS':
+                params[i] = val[0], val[1], tau_units[0], tau_units[1]
+        self.model.meta['params'] = params
+        
     def get_func(self):
         return self.model.fcn
     

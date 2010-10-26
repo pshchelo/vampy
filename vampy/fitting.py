@@ -189,10 +189,10 @@ def _bend_evans_est(x):
 
 def _bend_evans_meta():
     return {'name':'Classical Evans model',
-            'params':[('kappa','$\\kappa$','kBT','$k_B T$'),
-                      ('tau0','$\\tau_0$','mN/m','$\\frac{mN}{m}$')],
+            'params':[('kappa',r'$\kappa$','kBT','$k_B T$'),
+                      ('tau0',r'$\tau_0$','TAU_UNITS','TAU_UNITS')],
             'equ':['alpha = 1/(8*pi*kappa)*log(tau/tau0)',
-                   '$\\alpha = \\frac{1}{8*pi*\\kappa}*\\ln{\\frac{\\tau}{\\tau_0}}$']}
+                   r'$\alpha = \frac{1}{8*pi*\kappa}*\ln{\frac{\tau}{\tau_0}}$']}
 
 #bend_evans_model = Model(bend_evans_fcn, fjacd=_bend_evans_fjd, fjacb=_bend_evans_fjb,
 #                  estimate=_bend_evans_est, meta=_bend_evans_meta())
@@ -218,13 +218,11 @@ def _stretch_simple_est(x):
 
 def _stretch_simple_meta():
     return {'name':'Simple elastic stretching model',
-            'params':[('K','$K$','mN/m','$\\frac{mN}{m}$'),
-                      ('tau0','$\\tau_0$','mN/m','$\\frac{mN}{m}$')],
-            'equ':['alpha = tau/K+tau0',
-                   '$\\alpha = \\frac{\\tau}{K}+\\tau_0$']}
+            'params':[('K','$K$','TAU_UNITS','TAU_UNITS'),
+                      ('alpha0',r'$\alpha_0$','','')],
+            'equ':['alpha = tau/K+alpha0',
+                   r'$\alpha = \frac{\tau}{K}+\alpha_0$']}
     
-#stretch_simple_model = Model(stretch_simple_fcn, fjacd=_stretch_simple_fjd, fjacb=_stretch_simple_fjb,
-#                  estimate=_stretch_simple_est, meta=_stretch_simple_meta())
 stretch_simple_model = Model(stretch_simple_fcn,
                   estimate=_stretch_simple_est, meta=_stretch_simple_meta())
 
