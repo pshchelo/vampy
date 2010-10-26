@@ -3,6 +3,7 @@
 '''
 import wx
 
+import numpy as np
 import matplotlib as mplt
 mplt.use('WXAgg', warn=False)
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -37,7 +38,9 @@ class TensionsFrame(wx.Frame):
             self.data = self.TensionData(inputdata)
         else:
             self.data={}
-            self.data['tensdim'] = ('K units',r'$K$ units')
+            self.data['tensdim'] = ('tension units','tension units')
+            self.data['tension']=np.array(((),()))
+            self.data['dilation']=np.array(((),()))
         
         self.MakeImagePanel()
         
@@ -67,9 +70,6 @@ class TensionsFrame(wx.Frame):
         self.axes.set_aspect('auto')
 
         self.dataplot, = self.axes.plot([], [], 'ro', label = 'Measured')
-#        self.dataplot, bars, = self.axes.errorbar([], [],1,1,'ro', label = 'Measured')
-#        self.xbars = bars[0:1]
-#        self.ybars = bars[2:3]
         self.fitplot, = self.axes.plot([],[])
         
         labelfont = {'fontsize':'large'}
@@ -82,8 +82,8 @@ class TensionsFrame(wx.Frame):
         dim = self.data['tension'].shape[-1]
         self.slider = wxutil.DoubleSlider(self.panel, -1, (1, dim), 1, dim, gap=2)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.slider)
-        self.lowlabel = wx.StaticText(self.panel, -1, '%i'%self.slider.GetLow(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
-        self.highlabel = wx.StaticText(self.panel, -1, '%i'%self.slider.GetHigh(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+        self.lowlabel = wx.StaticText(self.panel, -1, '  %i'%self.slider.GetLow(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+        self.highlabel = wx.StaticText(self.panel, -1, '  %i'%self.slider.GetHigh(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
         
         self.imgbox = wx.BoxSizer(wx.VERTICAL)
         self.imgbox.Add(self.canvas, 1, wx.GROW)
@@ -115,10 +115,9 @@ class TensionsFrame(wx.Frame):
         bmpsavetxt = wx.ArtProvider.GetBitmap(SAVETXT, wx.ART_TOOLBAR, (32,32))
         bmpopentxt = wx.ArtProvider.GetBitmap(OPENTXT, wx.ART_TOOLBAR, (32,32))
         return (
-                (
-                (bmpopentxt, 'Open Data file', 'Open tensions data file', False),
-                 self.OnOpen),(
-                (bmpsavetxt, 'Save Data File', 'Save tensions data file', False),
+                ((bmpopentxt, 'Open Data file', 'Open tensions data file', False),
+                 self.OnOpen),
+                ((bmpsavetxt, 'Save Data File', 'Save tensions data file', False),
                  self.OnSave),
                 )
         
@@ -222,7 +221,7 @@ class TensionsFrame(wx.Frame):
     def OnOpen(self, evt):
         fileDlg = wx.FileDialog(self, message='Choose Dilations/Tensions file...',
                                  wildcard=DATWILDCARD, style=wx.FD_OPEN)
-        if fileDlg.ShowModal() != wx.OK:
+        if fileDlg.ShowModal() != wx.ID_OK:
             fileDlg.Destroy()
             return
         filename = fileDlg.GetPath()
@@ -232,6 +231,14 @@ class TensionsFrame(wx.Frame):
         if msg:
             self.OnError(msg)
             return
+        else:
+            dim = self.data['tension'].shape[-1]
+            self.slider.SetRange(1, dim)
+            self.slider.SetValue((1,dim))
+            self.axes.set_xlabel('$\\tau$, %s'%self.data['tensdim'][1])
+            self.OnSlide(evt)
+            self.Draw()
+        evt.Skip()
         
     def OnError(self, msg):
         """
@@ -248,12 +255,8 @@ class TensionsFrame(wx.Frame):
         y, sy = self.data['dilation'][:,low-1:high]
         
         self.dataplot.set_data(x, y)
-#        self.xbars[0].set_xdata(x-sx)
-#        self.xbars[1].set_xdata(x+sx)
-#        self.ybars[0].set_ydata(y-sy)
-#        self.ybars[1].set_ydata(y+sy)
                 
-        fitmodel = analysis.TensionFitModel((x,sx),(y,sy), self.fitmodel)
+        fitmodel = analysis.TensionFitModel((x,sx),(y,sy), self.fitmodel, self.data['tensdim'])
         result = fitmodel.fit()
         
         func = fitmodel.get_func()
