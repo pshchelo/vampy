@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 "Only tensions analysis for VAMPy project"
-from wx import PySimpleApp
-from vampy.wxgui.tension import TensionsFrame
+import wx
+from libshch import wxutil
+import vampy.wxgui.tension
 
-app = PySimpleApp(False)
-frame = TensionsFrame(parent=None, id=-1)
-frame.Show()
+class tensVamPyApp(wx.App):
+    '''Actual wxPython application'''
+    def OnInit(self):
+        customartprovider = wxutil.CustomArtProvider()
+        wx.ArtProvider.Push(customartprovider)
+        frame = vampy.wxgui.tension.TensionsFrame(parent=None, id=-1)
+        frame.Show()
+        return True   
+
+app = tensVamPyApp(False)
 app.MainLoop()

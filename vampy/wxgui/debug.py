@@ -38,15 +38,10 @@ class ImageDebugFrame(wx.Frame):
         self.profileplot = self.figure.add_subplot(221, title = 'Axis brightness profile')
         self.profileplot.plot(profile)
         
-        #TODO: change it to more smoothing techniques
-#        sigma=parent.analysispanel.GetParams()['sigma']
-#        grad=ndimage.gaussian_gradient_magnitude(ndimage.gaussian_filter1d(profile,sigma) , sigma)
-        
         order = parent.analysispanel.GetParams()['order']
         window = parent.analysispanel.GetParams()['window']
         smoothmode = parent.analysispanel.GetParams()['smoothing']
         grad = smooth.smooth1d(profile, smoothmode, order, window, diff=1)
-#        grad = np.abs(smooth.savitzky_golay(profile, window, order, 1))
         
         multiplier = profile.max()/grad.max()/2
         grad *= multiplier

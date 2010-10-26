@@ -20,7 +20,7 @@ import tension, debug, geometry
 
 from libshch import wxutil, util
 
-from libshch.common import MICROSCOPE, SAVETXT, OPENFOLDER, OPENTXT
+from libshch.common import MICROSCOPE, SAVETXT, OPENFOLDER
 from vampy.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
 from vampy.common import DEFAULT_SCALE, DEFAULT_PRESSACC
 
@@ -264,18 +264,6 @@ class VampyImagePanel(wx.Panel):
         self.canvas.mpl_connect('motion_notify_event', parent.statusbar.SetPosition)
         vsizer.Add(self.canvas, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.GROW)
         
-        
-#        self.im = self.axes.imshow(empty((1,1)), aspect='equal', cmap=mplt.cm.gray)
-#        self.pipest = self.axes.axvspan(0,0, fc='g', alpha=0.5)
-#        self.minaspest = self.axes.axvline(0)
-#        self.minvesest = self.axes.axvline(0)
-#        self.pipaxis, = self.axes.plot([], [], 'y--')
-#        self.upinwallline, = self.axes.plot([],[], 'y-')
-#        self.lowinwallline, = self.axes.plot([],[], 'y-')
-#        self.upoutwallline, = self.axes.plot([],[], 'y-')
-#        self.lowoutwallline, = self.axes.plot([],[], 'y-')
-        
-        
         navtoolbar = NavigationToolbar2(self.canvas)
         navtoolbar.Realize()
         vsizer.Add(navtoolbar, 0, wx.ALIGN_LEFT|wx.GROW)
@@ -439,10 +427,7 @@ class VampyImagePanel(wx.Panel):
         self.axes.plot(xdots, line4, 'y-')
         
         self.axes.imshow(self.Imgs[ImgNo-1], aspect='equal', cmap=cm.get_cmap('gray'))        
-#        self.im.set_array(self.Imgs[ImgNo-1])
-        
-#        self.axes.relim()
-#        self.axes.autoscale_view()
+
         self.canvas.draw()
         
     
@@ -451,11 +436,8 @@ class VampyFrame(wx.Frame):
     def __init__(self, parent, id):
         self.maintitle = 'VamPy'
         wx.Frame.__init__(self, parent, id, title=self.maintitle)
-        customartprovider = wxutil.CustomArtProvider()
-        wx.ArtProvider.Push(customartprovider)
         
         self.folder = None
-#        self.OpenedImgs = None
         
         self.menubar = wxutil.SimpleMenuBar(self, self.MenuData())
         self.SetMenuBar(self.menubar)
@@ -579,7 +561,6 @@ class VampyFrame(wx.Frame):
         except MemoryError:
             mesg = 'Memory Leak. Restart the application.'
             self.OnError(mesg)
-#            images = None
             return
         progressdlg = wx.ProgressDialog('Loading images','Loading images',len(self.imgfilenames),
                                         style = wx.PD_AUTO_HIDE|wx.PD_CAN_ABORT|wx.PD_REMAINING_TIME)
