@@ -123,4 +123,7 @@ def read_tensions(filename):
     except ValueError, value:
         return None, value
     tensiondata={}
-    return tensiondata
+    tensiondata['tensdim'] = ('tension units', 'tension units')
+    tensiondata['dilation'] = data[1:3]
+    tensiondata['tension'] = data[3:5]
+    return tensiondata, None
