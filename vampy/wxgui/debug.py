@@ -41,7 +41,7 @@ class ImageDebugFrame(wx.Frame):
         order = parent.analysispanel.GetParams()['order']
         window = parent.analysispanel.GetParams()['window']
         smoothmode = parent.analysispanel.GetParams()['smoothing']
-        grad = smooth.smooth1d(profile, smoothmode, order, window, diff=1)
+        grad = abs(smooth.smooth1d(profile, smoothmode, order, window, diff=1))
         
         multiplier = profile.max()/grad.max()/2
         grad *= multiplier
