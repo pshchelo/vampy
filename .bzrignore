@@ -7,6 +7,6 @@
 ./*.pdf
 *.dvi
 *.synctex*
-*.tps
-*.tcp
-*.kilepr
+.tps
+.tcp
+.kilepr

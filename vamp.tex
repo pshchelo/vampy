@@ -7,7 +7,7 @@
 
 The whole project can be divided in three ``subprojects'', which are mostly independent on each other in terms of development, but rather produce an input for next step:
 \begin{enumerate}
-	\item Experiment automatisation
+	\item Experiment automation
 	\item Data extraction from images
 	\item Data analysis
 \end{enumerate}
@@ -29,19 +29,17 @@ The stage movement module needs (besides init parameters) inputs for desired pos
 
 For now everything is done in Python with different additional packages.
 
-It can be considered as a prototype for future C/C++ program, but I really suspect that I will leave it in Python with probably some subroutines rewritten in C/C++ to boost performance --- sticking to Python will definitely shorten development time. Also there exists a \emph{LabPython} package for LabView that allows calling Python from within LabView, which could come in handy when gluing first and second steps.
-
-The pseudocode-like draft for the algorithm for processing single image should look like this:
+The pseudocode-like draft for the algorithm for processing single image looks like this:
 \begin{enumerate}
-  \item get user input
   \item load picture to array
+  \item get user input
   \item calculate positions of pipette walls
   \item calculate pipette radius
   \item calculate the middle line (axis) of the system
   \item extract data along the axis from the picture
   \item find positions of 3 characteristic points on the axis
   \item calculate all derived parameters (vesicle radius, tip length, surface area, volume)
-  \item output these data
+  \item calculate dilations and tensions and fit them with some defined function
 \end{enumerate}
 
 Python packages aside from Python Standard Library used or (probably) going to be used in this program:
@@ -63,40 +61,53 @@ On the other hand, \emph{wxPython}'s wxImage object could be probably used, thus
 \subsection{Get user input}\label{getinput}
 
 \begin{figure}
-\includegraphics[width=\columnwidth]{figs/pipetteaxis.pdf}
-\caption{Sketch of general situation of pipette system alignment on the image}
-\label{fig:pipetteaxis}
+	\includegraphics[width=\columnwidth]{figs/userinput.pdf}
+	\caption{User supplied parameters visualized on the aspirated vesicle image. Left blue line is $x_{a0}$, right blue line is $x_{v0}$, green region is approximate pipette tip position, yellow lines define the approximate pipette walls positions, yellow dashed line is approximate pipette axis.}
+	\label{fig:userinput}
 \end{figure}
 
-First of all user crops the image so that everything but the vesicle is left out and rotates the picture so that the pipette sticks from left.
+First of all user should crop the image so that everything but the vesicle is left out and rotate the picture so that the pipette \emph{sticks from left}. Let us assume the size of the image along the x-axis is now $N$. User supplies several sets of coordinates to define approximate regions of features locations (see \Fref{fig:userinput}):
+\begin{itemize}
+	\item overestimated position of the aspirated vesicle part $x_{a0}$ so that the tip of the aspirated vesicle part must be always to the left from this, $ x_a \in (0, x_{a0})$;
+	\item overestimated position of the outer part of the vesicle $x_{v0}$ so that the tip of the outer part of the vesicle is always to the right of it, $ x_v \in (x_{v0}, N)$;
+	\item approximate position of the pipette tip, $x_{p1}, x_{p2}$ so that the pipette tip is always in this region, $ x_p \in (x_{p1}, x_{p2})$;
+	\item approximate positions of pipette walls.
+\end{itemize}
 
-Now that the orientation of the picture is always the same, user supplies $x$-coordinates of 3 vertical lines - first is just a suitable offset from the left border of the image, second is the overestimated rightmost (closest to the pipette tip) position of the aspirated vesicle tip and the third is the overestimated leftmost (also closest to the pipette tip) position of the outer vesicle edge. (see Fig.~\ref{fig:pipetteaxis}). \textsl{Then the brightness profiles along 1st and 2nd lines are extracted to localize the position of pipette walls. For a phase contrast images inner walls of the pipette are considered to be inner inflection points of sharp minima peaks on the profile (see Fig.~\ref{fig:pipetteprofile}). In order to find them rough positions of the minima are estimated by finding 8 steepest jumps in the second derivative of gaussian-prefiltered (\texttt{scipy.ndimage.gaussian\_laplace()} function) profile across the pipette, with ``2nd and 3rd'' and ``6th and 7th'' defining estimate of peak location. Then the vicinity of estimate position is fitted with Gaussian profiles (for details on fitting procedure see Section~\ref{fitpeak}) and finally corresponding inflection points give sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$.}
+\subsection{Define pipette walls}\label{pipwalls}
+A cross-sections of the pipette are taken in two points $x=0$ and $x=x_{a0}$. The pipette walls are then taken as global minima in the regions corresponding to the approximate pipette walls positions for each cross-section (see \Fref{fig:pipcrosssection}), producing sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$. The $y$-positions can be further defined more accurately with subpixel resolution (see Section~\ref{subpix}).
 
 \begin{figure}%
-\includegraphics[width=\columnwidth]{figs/pipetteprofile.pdf}%
-\caption{Part of brightness profile along the line $(x_1,y_1), (x_2,y_2)$ on Fig.~\ref{fig:pipetteaxis}. Blue line - brightness profile itself, green line - result of applying gaussian-presmoothed laplacian filter, red lines - found positions of inflection points.}%
-\label{fig:pipetteprofile}%
+	\includegraphics[width=\columnwidth]{figs/pipcrosssection.pdf}%
+	\caption{Brightness profile of the pipette cross-section at $x=x_{a0}$. Green regions correspond to user-supplied approximate pipette wall positions, red vertical lines denote the actual found positions of pipette walls.}%
+	\label{fig:pipcrosssection}%
 \end{figure}
 
 \subsection{Calculate pipette radius}\label{calcpiprad}
 
 Distance (unsigned) from point $\left(x_0,y_0\right)$ to line $y=kx+b$ is given by:
 \begin{equation}
-\delta = \left|\frac{kx_0+b-y_0}{\sqrt{k^2-1}}\right|\;.
-\label{eq:pointtoline}
+	\delta = \left|\frac{kx_0+b-y_0}{\sqrt{k^2-1}}\right|\;.
+	\label{eq:pointtoline}
 \end{equation}
 Thus the diameter of the pipette for single image is calculated as mean of distances from every of 4 points to the line corresponding to the opposing wall. Then these values are again averaged between all images.
 
 \subsection{Calculate the middle line (axis) of the system}\label{calcaxis}
 
-Having obtained the set of reference points from Section~\ref{getinput} one builds a system axis as a bisector between straight lines formed by pipette inner walls. This is done by simply defying the line going through 2 middle points $\left(\frac{x_1+x_2}{2}, \frac{y_1+y_2}{2}\right)$ and $\left(\frac{x_3+x_4}{2}, \frac{y_3+y_4}{2}\right)$. Then the axis $y = kx+b$ is defined by coefficients
+\begin{figure}
+	\includegraphics[width=\columnwidth]{figs/pipetteaxis.pdf}
+ 	\caption{Sketch of general situation of pipette system alignment on the image}
+ 	\label{fig:pipetteaxis}
+\end{figure}
+
+Having obtained the set of reference points from Section~\ref{pipwalls} one builds a system axis as a bisector between straight lines formed by pipette inner walls. This is done by simply defying the line going through 2 middle points $\left(\frac{x_1+x_2}{2}, \frac{y_1+y_2}{2}\right)$ and $\left(\frac{x_3+x_4}{2}, \frac{y_3+y_4}{2}\right)$. Then the axis $y = kx+b$ is defined by coefficients
 
 \begin{equation}
 k = \frac{y_1+y_1-y_3-y_4}{x_1+x_2-x_3-x_4}, \; b = \frac{y_1+y_2}{2} - k\frac{x_1+x_2}{2}\;\;.
 \label{eq:axis}
 \end{equation}
 
-After that the brightness profile along this axis is extracted from image with special function (\verb|scipy.ndimage.map-coordinates()|), which returns spline-interpolated values of brightness ``between'' pixels. To define the set of points at which interpolated brightness should be evaluated first intersections of the system axis with boundaries of image are calculated. To define the number of points for evaluation the biggest of differences in $x$ or $y$ coordinates between intersection points is taken.
+After that the brightness profile along this axis is extracted from image with special function \texttt{scipy.ndimage.map-coordinates}, which returns spline-interpolated values of brightness ``between'' pixels. To define the set of points at which interpolated brightness should be evaluated first intersections of the system axis with boundaries of image are calculated. To define the number of points for evaluation the biggest of differences in $x$ or $y$ coordinates between intersection points is taken.
 
 Small pitfall --- since at the end we need real distances between features, an attention have to be paid to keep the scale of profiles equal. The above procedure does not keep the scale, because the line has only as many points as there are along one of it's coordinates, but it should be $\sqrt{x^2+y^2}$. Hence, the distance between 2 consecutive points on brightness profile along arbitrary tilted straight line with number of evaluated points as defined above corresponds to distance $\epsilon$ in pixels, where
 \begin{equation}
@@ -118,52 +129,31 @@ We are interested in 3 points on the axis of the system --- intersection of axis
 
 \begin{figure}%
 \includegraphics[width=\columnwidth]{figs/phcaxisprofile.pdf}%
-\caption{Brightness profile along the system axis for phase contrast image at Fig.~\ref{fig:pipetteaxis}. Red colour denotes approximate regions where features to find are located.}%
+\caption{Brightness profile along the system axis for phase contrast image at \Fref{fig:pipetteaxis}. Green region corresponds to the user-supplied approximate pipette tip position. Red line denotes actual pipette tip position found. Other features are also clearly distinguishable.}%
 \label{fig:phcaxisprofile}%
 \end{figure}
 
-For phase contrast images (see Fig.~\ref{fig:phcaxisprofile}), the pipette tip is maximum and vesicle sides are featured as steep jumps from dark to bright (so the inflection point is a choice for a feature position). 
+For phase contrast images (see \Fref{fig:phcaxisprofile}), the pipette tip ought to be a local minima or (in case of too small pipette and/or too bright illumination) a global maxima. Vesicle sides in turn are featured as steep jumps from dark to bright (so the inflection point is a choice for a feature position). 
 
-The pipette tip is first roughly located as the global maximum of the whole brightness profile, giving the position of the pipette tip with \emph{pixel resolution}. To get a \emph{subpixel resolution} of peak position we fit it with some suitable profile (see Section \ref{fitpeak}) with parameters of the fit giving the value desired.
+The pipette tip is first roughly located as the global maximum or minimum in the pipette tip search region, giving the position of the pipette tip with \emph{pixel resolution}. To get a \emph{subpixel resolution} of peak position its vicinity is fitted with some suitable profile (see Section \ref{subpix}) with parameters of the fit giving the value desired.
 
-The general problem with phase contrast is that the tip of the pipette is so bright and the profile is so smeared, that one can not be strictly sure if the global maximum of the profile corresponds exactly to pipette tip position. But for a time being we will assume that.
-
-As for inflection points, the rough positions are found by first applying \verb|scipy.ndimage.gaussian_gradient_magnitude()| filter (calculates an absolute value of gradient of gaussian-presmoothed profile) and than using user input for overestimated feature positions (see Section~\ref{getinput}) to define left and right search regions where global maxima for these regions are found, giving positions of steep jumps with \emph{pixel resolution} - see Fig.~\ref{fig:phcprofilegrad}. For \emph{subpixel resolution} the profile in the vicinity of estimated position is fitted with suitable function with well-defined inflection point (see Section~\ref{fitjump}).
+As for inflection points, the rough positions are found by first applying a smoothing filter to the brightness profile, taking absolute value of smoothed profile's derivative (Savitzky-Golay \cite{Savitzky1964, Steinier1972} and Gauss smoothing/derivative filters are implemented for now) and than using user input for overestimated feature positions (see Section~\ref{getinput}) to define left and right search regions where global maxima for these regions are found, giving positions of steep jumps with \emph{pixel resolution} - see \Fref{fig:phcprofilegrad}. For \emph{subpixel resolution} the profile in the vicinity of estimated position must be fitted with suitable function with well-defined inflection point (see Section~\ref{subpix}).
 
 \begin{figure}%
 \includegraphics[width=\columnwidth]{figs/phcprofilegrad.pdf}%
-\caption{Result of applying gradient magnitude filter to gaussian-presmoothed profile from Fig.~\ref{fig:phcaxisprofile}. Red regions are the same as at Fig.~\ref{fig:phcaxisprofile}. Green lines correspond to user input for overestimated feature positions (see Section~\ref{getinput}).}%
+\caption{Result of applying gradient magnitude filter to gaussian-presmoothed profile from \Fref{fig:phcaxisprofile}. Red lines correspond to located features positions.}%
 \label{fig:phcprofilegrad}%
 \end{figure}
 
 \subsubsection{DIC images}\label{dicfeatures}
 
-For DIC images the inner tip is minimum and the outer edge is maximum (or vise versa, depending on choice of polarizations) and pipette tip is always maximum (see Fig.~\ref{fig:dicaxisprofile}). Problem --- the tip of the pipette creates 2 close peaks, and it not yet completely clear, which of them corresponds exactly to the pipette tip. The fitting procedure by itself is the same as for peaks in~Section~\ref{phcfeatures}.
+For DIC images the aspirated tip is local minimum and the outer edge is local maximum in their respective search regions (or vice versa, depending on choice of polarizations) and pipette tip is (as with phase contrast images) either a local minimum or global maximum in the pipette tip search region. The fitting procedure by itself is the same as for peaks in~Section~\ref{phcfeatures}.
 
-\begin{figure}%
-\includegraphics[width=\columnwidth]{figs/dicaxisprofile.pdf}%
-\caption{Example of brightness profile along the system axis in DIC image. Red regions denote approximate feature positions.}%
-\label{fig:dicaxisprofile}%
-\end{figure}
+\subsubsection{Subpixel resolution}\label{subpix}
+\emph{NOT YET IMPLEMENTED}
 
-\subsubsection{Fitting peaks}\label{fitpeak}
+Positions of features with subpixel resolutions can be found by making a non-linear least squares fit (\texttt{scipy.optimize.leastsq}, Levenberg-Marquardt implementation) of brightness profile in the vicinity of the pixel-resolved location of the feature using some suitable function. According to \cite{Bitler1999} brightness jumps on the edge of an object observed with phase contrast microscopy are described by integral sine function, with inflection point being the exact position of the object's edge. As for the peaks, for them the Gaussian bell function can be used with position of its maximum defining feature position with subpixel resolution.
 
-Only the estimated position of the peak center is provided to fitting routine together with the whole profile. Then routine decides whether the peak is minimum or maximum and the borders of the peak (where the direction of slopes changes) are found. To make the peak more suitable for fitting (more symmetric) data range is then first shortened and then narrowed (see Fig.~\ref{fig:fitpeak}). The resulting data are fitted with Gaussian bell function using least squares method (\verb|scipy.optimize.leastsq()|, Levenberg-Marquardt implementation).
-
-\begin{figure}%
-\includegraphics[width=\columnwidth]{figs/fitpeak.pdf}%
-\caption{Fitting the peak with the Gauss profile. Blue + Green + Black - initial profile. After that the peak is shortened (Green + Black parts), then only symmetric part (Black) is considered for fitting (Red).}%
-\label{fig:fitpeak}%
-\end{figure}
-
-\subsubsection{Fitting jumps}\label{fitjump}
-Only the estimated position of the feature is provided to fitting routine together with the whole profile. Then routine finds the direction of the jump and searches for nearest local minimum and maximum. Then the resulting range plus-minus one data point is fitted with suitable function, which,  according to \cite{Bitler1999}, for brightness jumps in phase contrast images was chosen to be integral sine (\verb|scipy.special.sici()[0]|) (see Fig.~\ref{fig:fitedge}).
-
-\begin{figure}%
-\includegraphics[width=\columnwidth]{figs/fitedge.pdf}%
-\caption{Fitting the jump in brightness with integral sine. Blue - initial profile with position of the feature. Red - result of fitting and new feature position with subpixel resolution.}%
-\label{fig:fitedge}%
-\end{figure}
 
 \subsection{Calculation of derived parameters}\label{results}
 
@@ -173,7 +163,7 @@ Only the estimated position of the feature is provided to fitting routine togeth
 \label{fig:pipettesketch}%
 \end{figure}
 
-Given positions of outer vesicle edge as $x_v$, pipette tip $x_p$ and aspirated vesicle tip $x_t$ plus the pipette radius $r$ together with their corresponding errors $\delta x_v$, $\delta x_p$, $\delta x_t$ and $\delta r$ and assuming total cylindrical symmetry of the system along the system axis and spherical form of the vesicle outside the pipette one can calculate the desired parameters (see Fig.~\ref{fig:pipettesketch}).
+Given positions of outer vesicle edge as $x_v$, pipette tip $x_p$ and aspirated vesicle tip $x_t$ plus the pipette radius $r$ together with their corresponding errors $\delta x_v$, $\delta x_p$, $\delta x_t$ and $\delta r$ and assuming total cylindrical symmetry of the system along the system axis and spherical form of the vesicle outside the pipette one can calculate the desired parameters (see \Fref{fig:pipettesketch}).
 
 Denoting length of the vesicle part outside the pipette as $l_v = \left|x_p-x_v\right|$ with error $\delta l_v = \delta x_p + \delta x_v$ and the length of the aspirated tip as $l_a = \left|x_p-x_t\right|$ with error $\delta l_a = \delta x_p + \delta x_t$, the radius of the outside vesicle is
 \begin{equation*}

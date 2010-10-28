@@ -2,16 +2,24 @@
 \NeedsTeXFormat{LaTeX2e}
 \usepackage[pdftex]{graphicx}
 \usepackage{amssymb,amsbsy,amsmath}
-\usepackage{hyperref}
 \bibliographystyle{unsrt}
-%\usepackage{pshchelo}
+
+\usepackage{pshchelo}
+
+\usepackage{hyperref}
 
 \begin{document}
 
-\include{frontmatter}
+\pagestyle{empty} %No headings for the first pages.
+\title{Documentation for the VAMP project}
+\author{Pavlo Shchelokovskyy}
+\maketitle
 
-\include{vamp}
-\include{vamp-ug}
+\tableofcontents %Table of contents
+\pagestyle{plain} %Now display headings: headings / fancy / ...
+
+\input{vamp}
+\input{vamp-ug}
 
 \bibliography{pshchelo}
 

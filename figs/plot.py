@@ -1,162 +1,126 @@
 #!/usr/bin/python
-#generate figures for featpos.tex report
-#place this file in one folder with featpos.py
-import featpos as f
-import scipy as s
-import pylab as p
+#generate figures for VAMP-DOC report
+import numpy as np
+import scipy.ndimage
+from matplotlib import pyplot as plt
+import calculate as cl
 
-piporient = 'l'
-sigma = 3
-minvesest = 440
-minaspest = 240
-maxpipoffset = 10
+#this is for the first image from 2010-09-30\1-dopc+dope(3-1)\
+filename='20100930-1-01.png'
+#image mode
+mode = 'phc'
+polar = None
+#analysis settings
+darktip = True
+order = 2
+window=11
+#image preprocessing
+crop={}
+crop['left'] = 0
+crop['right'] = 250
+crop['top'] = 100
+crop['bottom'] = 50
+orient='right'
+#feature estimates
+aspves = (55, 283)
+pipette = (31, 12)
+axis = (125, 123)
+tip = (127, 137)
 
-img = f.readImage('img/phc-test01.tif', piporient)
 
-refsx = (maxpipoffset, minaspest)
-refs = f.wallPoints_phc(img, refsx, 3, plot = False)
-x = s.linspace(0,img.shape[1]-1, img.shape[1])
-
-metric, profile = f.lineProfile(img, (refs[0]+refs[1])/2., (refs[2]+refs[3])/2.)
-grad = s.ndimage.gaussian_gradient_magnitude(profile,sigma)
-
-pip = s.argmax(profile)
-asp = s.argmax(grad[:minaspest])
-ves = s.argmax(grad[minvesest:])+minvesest
-
-p.figure(1)
-p.imshow(img, cmap = p.cm.gray)
-p.axvline(minvesest, color = 'yellow', lw = 0.5, ls = '-.')
-p.axvline(minaspest, color = 'yellow', lw = 0.5, ls = '-.')
-p.axvline(maxpipoffset, color = 'yellow', lw = 0.5, ls = '-.')
-for ref in refs:
-    p.plot([ref[1]], [ref[0]], 'yo')
-
-p.annotate(r'$(x_1, y_1)$', xy = (refs[0][1], refs[0][0]), xycoords='data', 
-    xytext=(5, 10), textcoords='offset points', color = 'yellow', size = 'x-large')
-p.annotate(r'$(x_2, y_2)$', xy = (refs[1][1], refs[1][0]), xycoords='data', 
-    xytext=(5, -30), textcoords='offset points', color = 'yellow', size = 'x-large')
-p.annotate(r'$(x_3, y_3)$', xy = (refs[2][1], refs[2][0]), xycoords='data', 
-    xytext=(5, 10), textcoords='offset points', color = 'yellow', size = 'x-large')
-p.annotate(r'$(x_4, y_4)$', xy = (refs[3][1], refs[3][0]), xycoords='data', 
-    xytext=(5, -30), textcoords='offset points', color = 'yellow', size = 'x-large')
-
+minaspest, minvesest = aspves
+img = cl.load_image(filename, crop, orient)
+refsx = (0, aspves[0])
+refs = cl.wall_points_pix(img, refsx, axis, pipette)
+x = np.linspace(0,img.shape[1]-1, img.shape[1])
 linefunc = lambda x, p1, p2: (x-p1[1]) * (p2[0]-p1[0]) / (p2[1]-p1[1]) + p1[0]
-axis = lambda x: linefunc(x, (refs[3]+refs[2])/2, (refs[1]+refs[0])/2)
+axisfunc = lambda x: linefunc(x, (refs[3][0]+refs[2][0])/2, (refs[1][0]+refs[0][0])/2)
+profile = scipy.ndimage.map_coordinates(img, [axisfunc(x), x], output = float)
+pip = np.argmin(profile[tip[0]:tip[1]])+tip[0]
+grad = scipy.ndimage.gaussian_gradient_magnitude(profile,order)
+asp = np.argmax(grad[:minaspest])
+ves = np.argmax(grad[minvesest:])+minvesest
 
-p.plot(linefunc(x, refs[0], refs[2]), ls = '--', color = 'yellow')
-p.plot(linefunc(x, refs[1], refs[3]), ls = '--', color = 'yellow')
-p.plot(axis(x), lw = 2, color = 'yellow')
-p.annotate('system axis', xy = (0.8*img.shape[1], axis(0.8*img.shape[1])), xycoords = 'data',
-                xytext = (0.8, 0.2), textcoords = 'axes fraction', 
-                arrowprops=dict(facecolor='yellow', shrink=0.02),
-                color = 'yellow', size = 'large')
-p.axis('image')
-
-p.figure(2)
-p.plot(img[:,maxpipoffset], color = 'blue', label = 'profile', lw = 2)
-p.plot(s.ndimage.gaussian_laplace(img[:,maxpipoffset],sigma).astype(float),
-        color = 'green', label = 'gaussian_laplace(profile)', lw = 2)
-p.axvline(refs[0][0], color = 'red', lw = 2)
-p.axvline(refs[1][0], color = 'red', lw = 2)
-p.xlim(refs[0][0]-50, refs[1][0]+50)
-
-p.figure(3)
-p.plot(profile, color = 'blue', lw = 1.5)
-p.axis('tight')
-for location in (pip, ves, asp):
-    p.axvspan(location-10, location+10, facecolor = 'red', alpha = 0.3)
-
-p.figure(4)
-p.plot(grad, color = 'blue', lw = 1.5)
-for location in (pip, ves, asp):
-    p.axvspan(location-10, location+10, facecolor = 'red', alpha = 0.3)
-p.axvline(minvesest, color = 'green', lw = 1.5)
-p.axvline(minaspest, color = 'green', lw = 1.5)
-p.axvline(maxpipoffset, color = 'green', lw = 1.5)
-
-p.figure(5)
-vesex = f.fitEdge_phc(profile,ves, plot = True)[0][2]
-p.legend(loc = 2)
-
-p.figure(6)
-def fitPeak_plot(ar,centerest,plot = False):
-    '''Fits a peak to equidistant (=1) 1D data.'''
-    # find whether the peak is min or max
-    found = False
-    ctry = centerest
-    while not found:
-        if ar[ctry] == min(ar[ctry-1:ctry+2]):
-            sign = -1 # peak is a local minimum
-            found = True
-        elif ar[ctry] == max(ar[ctry-1:ctry+2]):
-            sign = 1 # peak is a local maximum
-            found = True
-        elif ar[ctry] == ar[ctry-1] and ar[ctry] == ar[ctry+1]:
-            ctry += 1
-    # find left and right ends of the peak
-    left = centerest
-    while ar[left]*sign >= ar[left-1]*sign:left-= 1
-    right = centerest
-    while ar[right]*sign >= ar[right+1]*sign: right+= 1
-    # shorten the peak (delete the highest side)
-    y = ar[left:right+1]
-    m = sign*max(sign*y[0],y[-1]*sign)
-    condition = (y*sign >= sign*m) #& (y*s <= s*max(s*y))
-    y = s.compress(condition, y)
-    if y.size < 4:
-        print "Error: peak is too narrow!"
-        raise AssertionError
-        sys.exit()
-    # find the shift introduced by previous steps
-    if ar[left] == y[0]:
-        shift = left
-    elif ar[right] == y[-1]:
-        shift = right-y.size
-    # make peak more symmetric
-    lim = min(centerest-shift, y.size-1-(centerest-shift))
-    # to assure that there are at least 4 points to fit
-    if lim <= 1: lim = 2
-    # fit the shortened and symmetrized peak
-    fit = f.fitGauss(ar[centerest-lim:centerest+lim+1],sign, plot = False)
-    # shift the peak center to coordinates of plot
-    fit[0][2] += centerest-lim-shift
-    if plot:
-        p.plot(ar[left:right+1], color = 'blue', lw = 3)
-        p.plot(y, color = 'green', lw = 2)
-        x = s.linspace(0, lim*2, lim*2+1)+centerest-lim-shift
-        p.plot(x,ar[centerest-lim:centerest+lim+1], color = 'black', lw = 1)
-        gauss = lambda p, x: p[0] + p[1]*s.exp(-(x-p[2])*(x-p[2])/(2*p[3]*p[3]))
-        xplot = s.linspace(0, lim*2)+centerest-lim-shift
-        p.plot(xplot, gauss(fit[0], xplot), color = 'red', lw = 2)
-    # shift the peak center back to coordinates of real profile
-    fit[0][2] += shift
-    return fit
-
-fitPeak_plot(profile, pip, plot = True)
-
-p.figure(7)
-img2 = f.readImage('img/dic-test.tif', 'r')
-p.plot(img2[206, 20:-20], color = 'blue', lw = 2)
-p.axvspan(269, 284, facecolor = 'red', alpha = 0.3)
-p.axvspan(345, 390, facecolor = 'red', alpha = 0.3)
-p.axvspan(607, 622, facecolor = 'red', alpha = 0.3)
+# pipete cross-section
+plt.figure(1) 
+plt.plot(img[:,minaspest], c='blue')
+plt.axvline(refs[2,0,0], c='red')
+plt.axvline(refs[3,0,0], c='red')
+plt.axvspan(axis[1]+pipette[0]-pipette[1], axis[1]+pipette[0]+pipette[1], alpha=0.20, fc='green')
+plt.axvspan(axis[1]-pipette[0]-pipette[1], axis[1]-pipette[0]+pipette[1], alpha=0.20, fc='green')
 
 
-#~ p.figure(1)
-#~ p.savefig('pipetteprofile.pdf')
-#~ p.figure(2)
-#~ p.savefig('pipetteaxis.pdf')
-#~ p.figure(3)
-#~ p.savefig('phcaxisprofile.pdf')
-#~ p.figure(4)
-#~ p.savefig('phcprofilegrad.pdf')
-#~ p.figure(5)
-#~ p.savefig('fitedge.pdf')
-#~ p.figure(6)
-#~ p.savefig('fitpeak.pdf')
-#~ p.figure(7)
-#~ p.savefig('dicaxisprofile.pdf')
+# image with pipette walls points and lines and axis
+plt.figure(2)
+plt.imshow(img, cmap=plt.cm.gray)
+plt.plot(refs[:,0,1], refs[:,0,0], 'yo', ms=7, mew=2)
+for i, ref in enumerate(refs):
+    yp,xp = ref[0]
+    if i%2 == 0:
+        yoffset=30
+    else:
+        yoffset=-30
+    plt.annotate('$(x_%i, y_%i)$'%(i,i), 
+                        xy=(xp, yp), xycoords='data',
+                        xytext=(5, yoffset), textcoords='offset points',
+                        color = 'yellow', size = 'x-large')
+plt.axis('image')
+
+plt.axvline(minvesest, color = 'blue', lw=1, ls='-.')
+plt.axvline(minaspest, color = 'blue', lw=1, ls='-.')
+
+plt.plot(linefunc(x, refs[0][0], refs[2][0]), ls = '--', color = 'yellow')
+plt.plot(linefunc(x, refs[1][0], refs[3][0]), ls = '--', color = 'yellow')
+plt.plot(x, axisfunc(x), color = 'yellow')
+plt.annotate('system axis', 
+                        xy = (0.6*img.shape[1], axisfunc(0.6*img.shape[1])), xycoords = 'data',
+                        xytext = (0.6, 0.2), textcoords = 'axes fraction', 
+                        arrowprops=dict(facecolor='yellow', shrink=0.02),
+                        color = 'yellow', size = 'large')
+
+
+# pipette axis profile and regions of interest
+plt.figure(3)
+plt.plot(profile)
+plt.axvspan(tip[0], tip[1], alpha=0.2, fc='green')
+plt.axvline(pip, c='red', lw=1)
+
+#gradient of pipette axis profile and features positions
+plt.figure(4)
+plt.plot(grad, c='blue')
+plt.axvline(asp, c='red')
+plt.axvline(ves, c='red')
+
+## plt.figure(5)
+## vesex = f.fitEdge_phc(profile,ves, plot = True)[0][2]
+## plt.legend(loc = 2)
+
+## plt.figure(6)
+
+## fitPeak_plot(profile, pip, plot = True)
+
+## plt.figure(7)
+## img2 = f.readImage('img/dic-test.tif', 'r')
+## plt.plot(img2[206, 20:-20], color = 'blue', lw = 2)
+## plt.axvspan(269, 284, facecolor = 'red', alpha = 0.3)
+## plt.axvspan(345, 390, facecolor = 'red', alpha = 0.3)
+## plt.axvspan(607, 622, facecolor = 'red', alpha = 0.3)
+
+
+plt.figure(1)
+plt.savefig('pipcrosssection.pdf')
+plt.figure(2)
+plt.savefig('pipetteaxis.pdf')
+plt.figure(3)
+plt.savefig('phcaxisprofile.pdf')
+plt.figure(4)
+plt.savefig('phcprofilegrad.pdf')
+## plt.figure(5)
+## plt.savefig('fitedge.pdf')
+## plt.figure(6)
+## plt.savefig('fitpeak.pdf')
+## plt.figure(7)
+## plt.savefig('dicaxisprofile.pdf')
 
 print "Close all plot windows to exit.."
-p.show()
+plt.show()
