@@ -5,13 +5,13 @@ Version=2
 [SessionInfo]
 ActiveTab=0
 FrameCount=3
-ActiveFrame=0
+ActiveFrame=2
 
 [Frame0]
 Columns=1
 Rows=1
-Flags=2
-ShowCmd=3
+Flags=0
+ShowCmd=1
 MinPos.x=-1
 MinPos.y=-1
 MaxPos.x=-4
@@ -24,11 +24,11 @@ Class=CLatexEdit
 Document=vamp-doc.tex
 
 [Frame0_Row0]
-cyCur=632
+cyCur=391
 cyMin=10
 
 [Frame0_Col0]
-cxCur=1053
+cxCur=887
 cxMin=10
 
 [Frame0_View0,0]
@@ -61,15 +61,15 @@ cxCur=891
 cxMin=10
 
 [Frame1_View0,0]
-Cursor.row=154
-Cursor.column=15
+Cursor.row=0
+Cursor.column=0
 TopSubLine=0
 
 [Frame2]
 Columns=1
 Rows=1
-Flags=0
-ShowCmd=1
+Flags=2
+ShowCmd=3
 MinPos.x=-1
 MinPos.y=-1
 MaxPos.x=-4
@@ -82,15 +82,15 @@ Class=CLatexEdit
 Document=vamp.tex
 
 [Frame2_Row0]
-cyCur=395
+cyCur=632
 cyMin=10
 
 [Frame2_Col0]
-cxCur=891
+cxCur=1053
 cxMin=10
 
 [Frame2_View0,0]
-Cursor.row=5
-Cursor.column=0
-TopSubLine=0
+Cursor.row=241
+Cursor.column=10
+TopSubLine=325
 

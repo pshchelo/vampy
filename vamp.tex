@@ -252,6 +252,14 @@ Dilations:
 		\label{eq:alpha-henriksen}
 	\end{equation}
 	where $\displaystyle{\gamma = 1-\frac{2R_p L_0+R_p^2}{4R_{v0}^2}}$.
+	\item approximated correction for initial aspiration after \cite{Henriksen2004} (made for testing)
+	\begin{equation}
+		\alpha = \frac{1}{2}\left[
+		\left(\frac{R_p}{R_{v0}}\right)^2-\left(\frac{Rp}{R_{v0}}\right)^3\right]
+		\frac{\Delta L}{R_p}\gamma
+		\label{eq:alpha-henriksen-simple}
+	\end{equation}
+	where $\gamma$ as in \eref{eq:alpha-henriksen}.
 \end{itemize}
 
 Fittings (done with Orthogonal Distance Regression):
