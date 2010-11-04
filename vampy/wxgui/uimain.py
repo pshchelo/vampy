@@ -182,7 +182,7 @@ class VampyAnalysisPanel(wx.Panel):
         wx.Panel.__init__(self, parent, id)
         box = wx.StaticBox(self, -1, 'Analysis Options')
         vsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        paramsizer = wx.FlexGridSizer(2,2)
+        paramsizer = wx.FlexGridSizer(cols=2)
         
         label = wx.StaticText(self, -1, 'Smoothing')
         self.smoothchoice = wx.Choice(self, -1, choices = smooth.SMOOTHFILTERS.keys())
@@ -587,7 +587,7 @@ class VampyFrame(wx.Frame):
         Display an error dialog
         @param msg: error message to display (type = string)
         """
-        errDlg = wx.MessageDialog(self, msg, "Error!", wx.ICON_ERROR)
+        errDlg = wx.MessageDialog(self, msg, "Error!", wx.ICON_ERROR|wx.OK)
         errDlg.ShowModal()
         errDlg.Destroy()
         
