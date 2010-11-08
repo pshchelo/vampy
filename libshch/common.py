@@ -18,5 +18,6 @@ OPENFOLDER = _get_res_file('folder-open.png')
 MICROSCOPE = _get_res_file('Microscope.png')
 PLOT = _get_res_file('Plot.png')
 MEASURE = _get_res_file('Measure.png')
+PREFS = _get_res_file('preferences-system.png')
 
 CUSTOMART = [SAVETXT, WXPYTHON, OPENTXT, OPENFOLDER, MICROSCOPE, MEASURE, PLOT]
