@@ -19,12 +19,11 @@ import smooth
 
 from common import PIX_ERR
 
-def section_profile(img, point1, point2):
+def section_profile(img, point1, point2, **mapkwargs):
     '''define the brightness profile along the section between 2 points
 
     coordinates of end points with their errors are supplied as numpy arrays 
     in notation array((y,x),(dy,dx))!
-    #TODO:might as well submit other options to map_coordinates function
 
     '''
     # define the line given by 2 ends
@@ -51,7 +50,8 @@ def section_profile(img, point1, point2):
     x = np.linspace(x1, x2, nPoints)
     y = np.linspace(y1, y2, nPoints)
     #interpolated values at points of profile
-    profile = ndimage.map_coordinates(img, [y, x], output = float)
+    mapkwargs['output'] = float
+    profile = ndimage.map_coordinates(img, [y, x], **mapkwargs)
     
     #calculate profile metric - coefficient for lengths in profile vs pixels
     k = np.sqrt(deltax**2+deltay**2) / longleg
@@ -100,7 +100,7 @@ def line_profile2(img, point1, point2):
     assert len(ends) == 2
     end1, end2 = ends.values
     
-def line_profile(img, point1, point2):
+def line_profile(img, point1, point2, **mapkwargs):
     '''define the brightness profile along the line defined by 2 points
         across the whole image
 
@@ -136,7 +136,8 @@ def line_profile(img, point1, point2):
         metric = sqrt(1 + 1/(k*k))
         metric_err = dk/np.fabs(metric * k*k*k)
     #output interpolated values at points of profile and profile metric
-    return metric, metric_err, ndimage.map_coordinates(img, [y, x], output = float)
+    mapkwargs['output'] = float
+    return metric, metric_err, ndimage.map_coordinates(img, [y, x], **mapkwargs)
 
 def point_to_line_dist(point, point1, point2):
     '''Point to line distance.
