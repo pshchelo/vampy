@@ -22,50 +22,7 @@ from libshch import wxutil, util
 
 from libshch.common import MICROSCOPE, SAVETXT, OPENFOLDER
 from vampy.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
-from vampy.common import DEFAULT_SCALE, DEFAULT_PRESSACC
-
-class VampyOtherUserDataDialog(wx.Dialog):
-    """
-    Dialog to collect additional data from user
-    """
-    def __init__(self, parent, id):
-        wx.Dialog.__init__(self, parent, id, 'Additional Parameters:')
-        
-        vsizer = wx.BoxSizer(wx.VERTICAL)
-        self.stagerb=wx.RadioBox(self, -1, 'Stage No.', choices = ['1','2'], majorDimension=2)
-        vsizer.Add(self.stagerb, 1, wx.GROW)
-        
-        flsz = wx.FlexGridSizer(-1,2)
-        label = wx.StaticText(self, -1, 'Scale (um/pixel)')
-        flsz.Add(label, 1)
-        self.scale = wx.TextCtrl(self, -1, '%s'%DEFAULT_SCALE, validator = wxutil.NumValidator('float', min=0))
-        flsz.Add(self.scale,1)
-        
-        label = wx.StaticText(self, -1, 'Pressure Accuracy (Pa)')
-        flsz.Add(label)
-        self.pressacc = wx.TextCtrl(self, -1, '%s'%DEFAULT_PRESSACC, validator = wxutil.NumValidator('float', min=0))
-        flsz.Add(self.pressacc)
-        
-        vsizer.Add(flsz)
-        btnbox = wx.StdDialogButtonSizer()
-        okBtn = wx.Button(self, wx.ID_OK, 'OK')
-        okBtn.SetDefault()
-        closeBtn = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-        btnbox.AddButton(okBtn)
-        btnbox.AddButton(closeBtn)
-        btnbox.Realize()
-        
-        vsizer.Add(btnbox)
-        
-        self.SetSizer(vsizer)
-        self.Layout()
-        self.Fit()
-    
-    def GetData(self):
-        scale = float(self.scale.GetValue())
-        pressacc = float(self.pressacc.GetValue())
-        stage = self.stagerb.GetSelection()        
-        return stage, scale, pressacc
+from dialogs import VampyOtherUserDataDialog
 
 class VampyImageConfigPanel(wx.Panel):
     '''Sets parameters to configure the image properties'''
