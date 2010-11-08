@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''Part of VAMP project, only for import.
+"""Part of VAMP project, only for import.
 
 Analysis of data presented by position of features
 extracted from vesicle aspiration images.
@@ -7,7 +7,8 @@ extracted from vesicle aspiration images.
 more details are documented in vamp.tex
 
 prerequisites - installed numpy, scipy
-'''
+
+"""
 from numpy import pi, sqrt, square, log, fabs  # most common for convenience
 import numpy as np
 from scipy import odr

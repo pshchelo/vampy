@@ -4,6 +4,9 @@ Collection of fit procedures for VAMPy project
 Provides:
 classes:
  fitcurve(func, x, y, init, Dfun=None, **lsq_kwargs)
+
+TODO: Add other fittings (improved bending/elasticity, stochastic fitting)
+
 """
 from numpy import diag, exp, linspace, sqrt, pi, log
 from scipy.optimize import leastsq
