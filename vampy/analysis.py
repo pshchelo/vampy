@@ -30,11 +30,12 @@ def averageImages(aver, **kwargs):
 def get_geometry(argsdict):
     '''Calculate geometry of the system based on extracted features'''
     metrics, metrics_err = argsdict['metrics']
-    piprads, piprads_err = argsdict['piprads']  # since piprad is measured directly, no scaling with metric is needed
+    piprads, piprads_err = argsdict['piprads']
     pips, pips_err = argsdict['pips']
     asps, asps_err = argsdict['asps']
     vess, vess_err = argsdict['vess']
 
+    # since piprad is tilt-corrected already, no scaling with metric is needed
     piprad = piprads.mean()
     piprad_err = sqrt(square(piprads_err).sum())/len(piprads_err)
 
@@ -92,9 +93,10 @@ def get_geometry(argsdict):
     results['piprad'] = np.asarray((piprad,piprad_err))
     results['metrics'] = argsdict['metrics']
     
-    ax_angle = np.arccos(1/metrics)
-    ax_angle_err = metrics_err / (metrics*sqrt(metrics*metrics-1))
-    results['angle'] = np.degrees(np.asarray((ax_angle, ax_angle_err)))
+    #problems with error calculations on perfectly horizontal lines, i.e metrics=1
+#    ax_angle = np.arccos(1/metrics)
+#    ax_angle_err = metrics_err / (metrics * sqrt(metrics**2 - 1))
+#    results['angle'] = np.degrees(np.asarray((ax_angle, ax_angle_err)))
     
     return results, None
 
