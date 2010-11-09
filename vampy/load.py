@@ -70,7 +70,7 @@ def read_pressures_file(filename, stage):
         return None, value
     except ValueError, value:
         return None, value
-    return np.asarray(pressures)[stage-1], None
+    return np.asarray(pressures)[stage], None
 
 def read_pressures_filenames(filenames, stage):
     mesg = None
