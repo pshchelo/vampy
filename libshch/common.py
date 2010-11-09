@@ -20,4 +20,4 @@ PLOT = _get_res_file('Plot.png')
 MEASURE = _get_res_file('Measure.png')
 PREFS = _get_res_file('preferences-system.png')
 
-CUSTOMART = [SAVETXT, WXPYTHON, OPENTXT, OPENFOLDER, MICROSCOPE, MEASURE, PLOT]
+CUSTOMART = [SAVETXT, WXPYTHON, OPENTXT, OPENFOLDER, MICROSCOPE, MEASURE, PLOT, PREFS]
