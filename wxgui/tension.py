@@ -10,9 +10,9 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-from vampy.common import DATWILDCARD
-from vampy import analysis, load, output
-from vampy.fitting import TENSFITMODELS
+from calc.common import DATWILDCARD
+from calc import analysis, load, output
+from calc.fitting import TENSFITMODELS
 
 from resources import PLOT, SAVETXT, OPENTXT
 import widgets

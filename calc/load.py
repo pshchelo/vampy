@@ -6,7 +6,7 @@ import os
 import numpy as np
 ### for loading images to numpy arrays with PIL
 from scipy import misc
-from vampy.common import PIX_ERR
+from calc.common import PIX_ERR
 
 def read_grey_image(filename):
     '''read single greyscale image'''

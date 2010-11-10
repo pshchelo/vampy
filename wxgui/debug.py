@@ -14,7 +14,7 @@ from matplotlib.figure import Figure
 from resources import MICROSCOPE
 import widgets
 
-from vampy import smooth
+from calc import smooth
 
 class ImageDebugFrame(wx.Frame):
     def __init__(self, parent, id, img, out, extra_out):

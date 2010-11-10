@@ -1,5 +1,5 @@
 import numpy as np
-import vampy
+import calc
 
 def main():    
     Rp = float(raw_input('Pipette radius: '))
@@ -15,7 +15,7 @@ def main():
     A=2*np.pi*(Rp*La+Rv*Rv+Lv*Lv)
     alpha = A/A[0]-1
     
-    slope, sd_slope, intercept, sd_intercept = vampy.fitting.linregr(np.log(tau[1:]), alpha[1:])
+    slope, sd_slope, intercept, sd_intercept = calc.fitting.linregr(np.log(tau[1:]), alpha[1:])
     bend = 1./8/np.pi/slope
     print 'Bending stiffness is %f KbT'%bend
     file = open(filename, 'a')
@@ -25,8 +25,8 @@ def main():
     raw_input('Paused...')
 
 def fit_tensions(x, sdx, y, sdy, modelname):
-    model = vampy.fitting.TENSFITMODELS[modelname]
-    fitmodel = vampy.analysis.TensionFitModel((x, sdx), (y, sdy), model)
+    model = calc.fitting.TENSFITMODELS[modelname]
+    fitmodel = calc.analysis.TensionFitModel((x, sdx), (y, sdy), model)
     results = fitmodel.fit()
     
     for i,param in enumerate(results['params']):

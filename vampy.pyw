@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 "Main file for VAMPy project"
 import wx
-from vampy.wxgui import uimain, resources
+from wxgui import uimain, resources
 
 class VamPyApp(wx.App):
     '''Actual wxPython application'''

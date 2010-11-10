@@ -14,13 +14,13 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-from vampy import analysis, features, load, smooth
+from calc import analysis, features, load, smooth
 
 import tension, debug, geometry, widgets
 
 from resources import MICROSCOPE, SAVETXT, OPENFOLDER
-from vampy.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
-from vampy.common import split_to_int
+from calc.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
+from calc.common import split_to_int
 from dialogs import VampyOtherUserDataDialog
 
 class VampyImageConfigPanel(wx.Panel):

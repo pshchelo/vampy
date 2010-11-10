@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 "Only tensions analysis for VAMPy project"
 import wx
-from vampy.wxgui import geometry, resources
+from wxgui import geometry, resources
 
 class tensVamPyApp(wx.App):
     '''Actual wxPython application'''

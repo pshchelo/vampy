@@ -4,7 +4,7 @@ Extra wxPython dialogs for VamPy project
 
 import wx
 import widgets
-from vampy.common import DEFAULT_PRESSACC, DEFAULT_SCALE
+from calc.common import DEFAULT_PRESSACC, DEFAULT_SCALE
 
 class VampyOtherUserDataDialog(wx.Dialog):
     """

@@ -12,9 +12,9 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-from vampy import load, output, analysis
-from vampy.common import DATWILDCARD
-from vampy.common import grid_size
+from calc import load, output, analysis
+from calc.common import DATWILDCARD
+from calc.common import grid_size
 from dialogs import VampyOtherUserDataDialog
 from tension import TensionsFrame
 
