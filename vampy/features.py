@@ -14,6 +14,7 @@ prerequisites - installed numpy, scipy
 from numpy import sqrt, square, sum  # these are the most common ones just for convenience
 import numpy as np
 from scipy import ndimage
+
 from fitting import fit_err
 import smooth
 

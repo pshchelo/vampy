@@ -16,12 +16,11 @@ from matplotlib.figure import Figure
 
 from vampy import analysis, features, load, smooth
 
-import tension, debug, geometry
+import tension, debug, geometry, widgets
 
-from libshch import wxutil, util
-
-from libshch.common import MICROSCOPE, SAVETXT, OPENFOLDER
+from resources import MICROSCOPE, SAVETXT, OPENFOLDER
 from vampy.common import OWNPATH, SIDES, DATWILDCARD, CFG_FILENAME
+from vampy.common import split_to_int
 from dialogs import VampyOtherUserDataDialog
 
 class VampyImageConfigPanel(wx.Panel):
@@ -38,7 +37,7 @@ class VampyImageConfigPanel(wx.Panel):
             title = wx.StaticText(self, -1, side)
             cropping = wx.TextCtrl(self, -1, '0', 
                                     style = wx.TE_PROCESS_ENTER,
-                                    name = side+'crop', validator = wxutil.NumValidator('int', min=0))
+                                    name = side+'crop', validator = widgets.NumValidator('int', min=0))
             self.Bind(wx.EVT_TEXT_ENTER, parent.OnConfigImage, cropping)
             cropsizer.Add(title, 1, wx.GROW|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
             cropsizer.Add(cropping, 1, wx.ALIGN_LEFT|wx.GROW)
@@ -153,7 +152,7 @@ class VampyAnalysisPanel(wx.Panel):
         
         for param in sorted(self.numparams, reverse=1):
             label = wx.StaticText(self, -1, param)
-            val = wx.TextCtrl(self, -1, '0', name = param, validator = wxutil.NumValidator('float', min = 0))
+            val = wx.TextCtrl(self, -1, '0', name = param, validator = widgets.NumValidator('float', min = 0))
             paramsizer.AddMany([(label,0,0), (val,0,0)])
         
         for param in self.boolparams:
@@ -214,7 +213,7 @@ class VampyImagePanel(wx.Panel):
         self.Imgs = None
         
         vsizer = wx.BoxSizer(wx.VERTICAL)
-        self.figure = Figure(facecolor = wxutil.rgba_wx2mplt(self.GetBackgroundColour()))
+        self.figure = Figure(facecolor = widgets.rgba_wx2mplt(self.GetBackgroundColour()))
         
         self.axes = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(self, -1, self.figure)
@@ -237,14 +236,14 @@ class VampyImagePanel(wx.Panel):
         
         regionlabel = wx.StaticText(self, -1, 'Aspirated\nVesicle')
         slidersizer.Add(regionlabel, 0, wx.ALIGN_RIGHT)
-        self.regionslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='aspves')
+        self.regionslider = widgets.DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='aspves')
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.regionslider)
         self.paramsliders.append(self.regionslider)
         slidersizer.Add(self.regionslider, 1, wx.GROW|wx.ALIGN_LEFT)
         
         tiplabel = wx.StaticText(self, -1, 'Pipette Tip')
         slidersizer.Add(tiplabel, 0, wx.ALIGN_RIGHT)
-        self.tipslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='tip')
+        self.tipslider = widgets.DoubleSlider(self, -1, (0,1), 0, 1, gap=2, name='tip')
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.tipslider)
         self.paramsliders.append(self.tipslider)
         slidersizer.Add(self.tipslider, 1, wx.GROW|wx.ALIGN_LEFT)
@@ -258,12 +257,12 @@ class VampyImagePanel(wx.Panel):
         name = 'axis'
         label = wx.StaticText(self, -1, name)
         axslidersizer.Add(label)
-        self.axisslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
+        self.axisslider = widgets.DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.axisslider)
         
         name = 'pipette'
         label = wx.StaticText(self, -1, name)
-        self.pipetteslider = wxutil.DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
+        self.pipetteslider = widgets.DoubleSlider(self, -1, (0,1), 0, 1, style=wx.SL_VERTICAL, name=name)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.pipetteslider)
         axslidersizer.Add(label)
         
@@ -334,20 +333,20 @@ class VampyImagePanel(wx.Panel):
         imgno, ysize, xsize = self.Imgs.shape
         
         strvalue = imgcfg.get('aspves', '')
-        value, mesg = util.split_to_int(strvalue, (0, xsize-1))
+        value, mesg = split_to_int(strvalue, (0, xsize-1))
         if mesg:
             self.GetParent().OnError(mesg)
         self.regionslider.SetValue(value)
         
         strvalue = imgcfg.get('tip', '')
-        value, mesg = util.split_to_int(strvalue, (xsize/2, xsize/2+1))
+        value, mesg = split_to_int(strvalue, (xsize/2, xsize/2+1))
         if mesg:
             self.GetParent().OnError(mesg)
         self.tipslider.SetValue(value)
         
         for key in ('axis','pipette'):
             strvalue = imgcfg.get(key, '')
-            value, mesg = util.split_to_int(strvalue, (0, ysize/4))
+            value, mesg = split_to_int(strvalue, (0, ysize/4))
             if mesg:
                 self.GetParent().OnError(mesg)
             wx.FindWindowByName(key).SetValue(value)
@@ -396,14 +395,14 @@ class VampyFrame(wx.Frame):
         
         self.folder = None
         
-        self.menubar = wxutil.SimpleMenuBar(self, self.MenuData())
+        self.menubar = widgets.SimpleMenuBar(self, self.MenuData())
         self.SetMenuBar(self.menubar)
         
-        self.toolbar = wxutil.SimpleToolbar(self, *self.ToolbarData())
+        self.toolbar = widgets.SimpleToolbar(self, *self.ToolbarData())
         self.SetToolBar(self.toolbar)
         self.toolbar.Realize()
         
-        self.statusbar = wxutil.PlotStatusBar(self)
+        self.statusbar = widgets.PlotStatusBar(self)
         self.SetStatusBar(self.statusbar)
         
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -663,7 +662,6 @@ class VampyFrame(wx.Frame):
         reload(load)
         reload(analysis)
         reload(features)
-        reload(util)
         reload(tension)
         reload(debug)
         reload(geometry)

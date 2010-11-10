@@ -14,26 +14,27 @@ from matplotlib.figure import Figure
 
 from vampy import load, output, analysis
 from vampy.common import DATWILDCARD
+from vampy.common import grid_size
 from dialogs import VampyOtherUserDataDialog
 from tension import TensionsFrame
 
-from libshch.common import MEASURE, SAVETXT, OPENTXT, PLOT, PREFS
-from libshch import util, wxutil
+from resources import MEASURE, SAVETXT, OPENTXT, PLOT, PREFS
+import widgets
 
 class GeometryFrame(wx.Frame):
     def __init__(self, parent, id, argsdict=None):
         wx.Frame.__init__(self, parent, id, size = (1024,768), title = 'Vesicle Geometry')
         
-        self.statusbar = wxutil.PlotStatusBar(self)
+        self.statusbar = widgets.PlotStatusBar(self)
         self.SetStatusBar(self.statusbar)
         
-        self.toolbar = wxutil.SimpleToolbar(self, *self.ToolbarData())
+        self.toolbar = widgets.SimpleToolbar(self, *self.ToolbarData())
         self.SetToolBar(self.toolbar)
         self.toolbar.Realize()
         
         panel = wx.Panel(self, -1)
         pansizer = wx.BoxSizer(wx.VERTICAL)
-        self.figure = Figure(facecolor = wxutil.rgba_wx2mplt(panel.GetBackgroundColour()))
+        self.figure = Figure(facecolor = widgets.rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
         pansizer.Add(self.canvas, 1, wx.GROW)
@@ -180,7 +181,7 @@ class GeometryFrame(wx.Frame):
         toplot = ['aspl', 'vesl', 'metrics', 'area']
         self.plots = {}
         x = range(1, len(self.data.get(toplot[0], [[],[]])[0])+1)
-        n,m = util.grid_size(len(toplot))
+        n,m = grid_size(len(toplot))
         self.figure.clear()
         for index, item in enumerate(toplot):
             y, y_err = self.data.get(item, [[],[]])

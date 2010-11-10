@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 "Main file for VAMPy project"
 import wx
-from libshch import wxutil
-import vampy.wxgui.uimain
+from vampy.wxgui import uimain, resources
 
 class VamPyApp(wx.App):
     '''Actual wxPython application'''
     def OnInit(self):
-        customartprovider = wxutil.CustomArtProvider()
+        customartprovider = resources.CustomArtProvider()
         wx.ArtProvider.Push(customartprovider)
-        frame = vampy.wxgui.uimain.VampyFrame(parent=None, id=-1)
+        frame = uimain.VampyFrame(parent=None, id=-1)
         frame.Show()
         return True   
 

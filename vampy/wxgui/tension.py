@@ -14,8 +14,8 @@ from vampy.common import DATWILDCARD
 from vampy import analysis, load, output
 from vampy.fitting import TENSFITMODELS
 
-from libshch.common import PLOT, SAVETXT, OPENTXT
-from libshch import wxutil
+from resources import PLOT, SAVETXT, OPENTXT
+import widgets
 
 class TensionsFrame(wx.Frame):
     def __init__(self, parent, id, *inputdata):
@@ -23,11 +23,11 @@ class TensionsFrame(wx.Frame):
         
         self.panel = wx.Panel(self, -1)
 
-        self.toolbar = wxutil.SimpleToolbar(self, *self.ToolbarData())
+        self.toolbar = widgets.SimpleToolbar(self, *self.ToolbarData())
         self.SetToolBar(self.toolbar)
         self.toolbar.Realize()
         
-        self.statusbar = wxutil.PlotStatusBar(self)
+        self.statusbar = widgets.PlotStatusBar(self)
         self.SetStatusBar(self.statusbar)
                
         self.MakeModelPanel()
@@ -63,7 +63,7 @@ class TensionsFrame(wx.Frame):
         self.Draw()
         
     def MakeImagePanel(self):
-        self.figure = Figure(facecolor = wxutil.rgba_wx2mplt(self.panel.GetBackgroundColour()))
+        self.figure = Figure(facecolor = widgets.rgba_wx2mplt(self.panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(self.panel, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
         self.axes = self.figure.add_subplot(111)
@@ -80,7 +80,7 @@ class TensionsFrame(wx.Frame):
         navtoolbar.Realize()
         
         dim = self.data['tension'].shape[-1]
-        self.slider = wxutil.DoubleSlider(self.panel, -1, (1, dim), 1, dim, gap=2)
+        self.slider = widgets.DoubleSlider(self.panel, -1, (1, dim), 1, dim, gap=2)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.slider)
         self.lowlabel = wx.StaticText(self.panel, -1, '  %i'%self.slider.GetLow(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
         self.highlabel = wx.StaticText(self.panel, -1, '  %i'%self.slider.GetHigh(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)

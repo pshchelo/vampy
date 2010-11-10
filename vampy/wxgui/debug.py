@@ -11,8 +11,8 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar2
 from matplotlib.figure import Figure
 
-from libshch.common import WXPYTHON
-from libshch import wxutil
+from resources import MICROSCOPE
+import widgets
 
 from vampy import smooth
 
@@ -20,12 +20,12 @@ class ImageDebugFrame(wx.Frame):
     def __init__(self, parent, id, img, out, extra_out):
         wx.Frame.__init__(self, parent, id, size=(800,600), title = 'Single Image Debug')
         
-        self.statusbar = wxutil.PlotStatusBar(self)
+        self.statusbar = widgets.PlotStatusBar(self)
         self.SetStatusBar(self.statusbar)
         
         panel = wx.Panel(self, -1)
         pansizer = wx.BoxSizer(wx.VERTICAL)
-        self.figure = Figure(facecolor = wxutil.rgba_wx2mplt(panel.GetBackgroundColour()))
+        self.figure = Figure(facecolor = widgets.rgba_wx2mplt(panel.GetBackgroundColour()))
         self.canvas = FigureCanvas(panel, -1, self.figure)
         self.canvas.mpl_connect('motion_notify_event', self.statusbar.SetPosition)
         pansizer.Add(self.canvas, 1, wx.GROW)
@@ -78,7 +78,7 @@ class ImageDebugFrame(wx.Frame):
         panel.Fit()
         title = '%s : %s - Image %s - %s'%(parent.imagedate, parent.imagedir, parent.imgpanel.GetImgNo(), self.GetTitle())
         self.SetTitle(title)
-        self.SetFrameIcons(WXPYTHON, (16,24,32))
+        self.SetFrameIcons(MICROSCOPE, (16,24,32))
         self.canvas.draw()
         
     def SetFrameIcons(self, artid, sizes):
