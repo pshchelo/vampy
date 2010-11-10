@@ -3,7 +3,6 @@
 	<name>VamPy</name>
 	<comment></comment>
 	<projects>
-		<project>libshch</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
