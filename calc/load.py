@@ -123,7 +123,8 @@ def read_geometry_simple(filename):
     pipette radius, 
     position of aspirated vesicle part, 
     position of pipette mouth, 
-    position of outside part of the vesicle.
+    position of outside part of the vesicle,
+    metric of the axis (for small tilts this is cosine of the tilt angle)
     
     The distances are assumed to already corrected by the tilt (as ImageJ does it), 
     so that the metrics is 1 and it's error is zero.
@@ -141,13 +142,13 @@ def read_geometry_simple(filename):
         return None, value
     except ValueError, value:
         return None, value
-    piprad, asp, pip, ves = data
+    piprad, asp, pip, ves, metrics = data
     out={}
     out['piprads'] = np.asarray((piprad, PIX_ERR*np.sqrt(2)*np.ones_like(piprad)))
     out['asps'] = np.asarray((asp, PIX_ERR*np.ones_like(asp)))
     out['pips'] = np.asarray((pip, PIX_ERR*np.ones_like(pip)))
     out['vess'] = np.asarray((ves, PIX_ERR*np.ones_like(ves)))
-    out['metrics'] = np.asarray((np.ones_like(asp), np.zeros_like(asp)))
+    out['metrics'] = np.asarray((metrics, np.zeros_like(metrics)))
     return out, None
     
     
