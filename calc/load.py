@@ -46,7 +46,8 @@ def preproc_images(images, orientation, crop):
     ### crop image
     crop['bottom'] = images.shape[1] - crop['bottom']
     crop['right'] = images.shape[2] - crop['right']
-    images = images[:,crop['top']:crop['bottom'], crop['left']:crop['right']]
+    images = images[:, crop['top']:crop['bottom'], 
+                    crop['left']:crop['right']]
     
     ### rotate according to orientation flag
     rolled = np.rollaxis(np.rollaxis(images, 1), 2, 1)  # make first axis last
@@ -56,7 +57,7 @@ def preproc_images(images, orientation, crop):
         rolled = np.rot90(rolled, 1)
     elif orientation == 'bottom':
         rolled = np.rot90(rolled, 3)
-    return np.rollaxis(rolled, 2)  # bring the original first axis back from last
+    return np.rollaxis(rolled, 2)  # bring original first axis back from last
 
 def read_pressures_file(filename, stage):
     """
@@ -79,7 +80,8 @@ def read_pressures_filenames(filenames, stage):
     fnames = map(os.path.basename, filenames)
     pressstrings, exts = zip(*map(os.path.splitext, fnames))
     try:
-        ind, press1, press2, subind = zip(*[x.replace('_','-').split('-') for x in pressstrings])
+        ind, press1, press2, subind = zip(
+                        *[x.replace('_','-').split('-') for x in pressstrings])
     except ValueError:
         mesg = 'Wrong filenames format!'
         return None, None, mesg   
@@ -97,7 +99,8 @@ def read_pressures_filenames(filenames, stage):
         mesg = 'Wrong filenames format!'
         return None, mesg
     #reduce sequences of identical values to respective single value
-    pressure = [x for i,x in enumerate(pressures) if i == 0 or x != pressures[i-1]]
+    pressure = [
+            x for i,x in enumerate(pressures) if i == 0 or x != pressures[i-1]]
     if aver*len(pressure) != len(pressures):
         mesg = 'Different number of images per pressure!'
         return None, None, mesg
@@ -143,15 +146,14 @@ def read_geometry_simple(filename):
     except ValueError, value:
         return None, value
     piprad, asp, pip, ves, metrics = data
-    out={}
-    out['piprads'] = np.asarray((piprad, PIX_ERR*np.sqrt(2)*np.ones_like(piprad)))
+    out = {}
+    out['piprads'] = np.asarray(
+                            (piprad, PIX_ERR*np.sqrt(2)*np.ones_like(piprad)))
     out['asps'] = np.asarray((asp, PIX_ERR*np.ones_like(asp)))
     out['pips'] = np.asarray((pip, PIX_ERR*np.ones_like(pip)))
     out['vess'] = np.asarray((ves, PIX_ERR*np.ones_like(ves)))
     out['metrics'] = np.asarray((metrics, np.zeros_like(metrics)))
     return out, None
     
-    
-
 def read_geometry_full():
     pass

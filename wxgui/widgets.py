@@ -13,7 +13,6 @@ Provides following objects:
     GatherFilesPanel - Panel that displays a list of files and allows adding and removing files or groups of files
 """
 
-import os
 import wx
 
 def rgba_wx2mplt(wxcolour):
@@ -75,7 +74,6 @@ class SimpleToolbar(wx.ToolBar):
         @param buttons: tuple or list of ((Bitmap, shortName, longName, isToggle), Handler)
         
         """
-        
         wx.ToolBar.__init__(self, parent)
         for button in buttons:
             buttonargs, handler = button

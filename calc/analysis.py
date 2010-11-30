@@ -17,6 +17,7 @@ import fitting
 
 #implemented models for calculating tension from geometry
 TENSMODELS = {}
+GEOMDATAKEYS = []
 
 def averageImages(aver, **kwargs):
     if aver > 1:
@@ -100,6 +101,8 @@ def get_geometry(argsdict):
 #    results['angle'] = np.degrees(np.asarray((ax_angle, ax_angle_err)))
     
     return results, None
+
+GEOMDATAKEYS = ('aspl','vesl','vesrad','area','volume','piprad','metrics')
 
 class TensionFitModel(object):
     def __init__(self, datax, datay, model, tau_units):
