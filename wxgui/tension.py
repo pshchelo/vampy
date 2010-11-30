@@ -123,6 +123,8 @@ class TensionsFrame(wx.Frame):
         
     def MakeModelPanel(self):
         self.modelpanel = wx.Panel(self.panel, -1)
+        modelstbox = wx.StaticBox(self.modelpanel, -1, 'Model')
+        modelbox = wx.StaticBoxSizer(modelstbox, wx.VERTICAL)
         
         labeltensmodel = wx.StaticText(self.modelpanel, -1, 'Tension')
         self.tensmodelchoice = wx.Choice(self.modelpanel, -1, choices = analysis.TENSMODELS.keys())
@@ -133,9 +135,6 @@ class TensionsFrame(wx.Frame):
         self.fitmodelchoice = wx.Choice(self.modelpanel, -1, choices = TENSFITMODELS.keys())
         self.fitmodelchoice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.OnFitModel, self.fitmodelchoice)
-        
-        modelstbox = wx.StaticBox(self.modelpanel, -1, 'Model')
-        modelbox = wx.StaticBoxSizer(modelstbox, wx.VERTICAL)
         
         flexsz = wx.FlexGridSizer(cols=2)
         
@@ -150,14 +149,13 @@ class TensionsFrame(wx.Frame):
     
     def MakePlotOptPanel(self):
         self.plotoptpanel = wx.Panel(self.panel, -1)
+        plotoptstbox = wx.StaticBox(self.plotoptpanel, -1, 'Plot options')
+        plotoptbox = wx.StaticBoxSizer(plotoptstbox, wx.VERTICAL)
         
         labelxscale = wx.StaticText(self.plotoptpanel, -1, 'X scale')
         self.xscalechoice = wx.Choice(self.plotoptpanel, -1, choices = ['linear','log'])
         self.xscalechoice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.OnXScale, self.xscalechoice)
-        
-        plotoptstbox = wx.StaticBox(self.plotoptpanel, -1, 'Plot options')
-        plotoptbox = wx.StaticBoxSizer(plotoptstbox, wx.VERTICAL)
         
         flexsz = wx.FlexGridSizer(cols=2)
         
