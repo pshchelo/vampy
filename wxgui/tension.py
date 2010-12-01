@@ -36,6 +36,7 @@ class TensionsFrame(wx.Frame):
         if inputdata:
             self.inputdata = inputdata
             self.data = self.TensionData(inputdata)
+            self.tensmodelchoice.Enable()
         else:
             self.data={}
             self.data['tensdim'] = ('tension units','tension units')
@@ -80,6 +81,7 @@ class TensionsFrame(wx.Frame):
         navtoolbar.Realize()
         
         dim = self.data['tension'].shape[-1]
+        if dim < 3: dim=3
         self.slider = widgets.DoubleSlider(self.panel, -1, (1, dim), 1, dim, gap=2)
         self.Bind(wx.EVT_SLIDER, self.OnSlide, self.slider)
         self.lowlabel = wx.StaticText(self.panel, -1, '  %i'%self.slider.GetLow(), style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
@@ -130,6 +132,7 @@ class TensionsFrame(wx.Frame):
         self.tensmodelchoice = wx.Choice(self.modelpanel, -1, choices = analysis.TENSMODELS.keys())
         self.tensmodelchoice.SetSelection(0)
         self.Bind(wx.EVT_CHOICE, self.OnChangeTensionModel, self.tensmodelchoice)
+        self.tensmodelchoice.Enable(False)
         
         labelfit = wx.StaticText(self.modelpanel, -1, 'Fitting')
         self.fitmodelchoice = wx.Choice(self.modelpanel, -1, choices = TENSFITMODELS.keys())
@@ -234,6 +237,7 @@ class TensionsFrame(wx.Frame):
             self.slider.SetRange(1, dim)
             self.slider.SetValue((1,dim))
             self.axes.set_xlabel('$\\tau$, %s'%self.data['tensdim'][1])
+            self.tensmodelchoice.Enable(False)
             self.OnSlide(evt)
             self.Draw()
         evt.Skip()
