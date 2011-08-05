@@ -1,1 +1,9 @@
 .pydevproject
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.dvi
+*.synctex* 
