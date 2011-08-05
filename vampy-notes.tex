@@ -1,31 +1,11 @@
-%vamp.tex
-% notes for development of VAMP (Vesicle Aspiration with MicroPipettes) project
+% !TeX root = vampy.tex
+%vampy-notes.tex
+% notes for development of VAMPy (image analysis part of VAMP project)
 % all figures concerning Phase Contrast images are based on image file
 % pshchelo\images\pipettes\PhC\me\micropipettes6\ves_-000100.tif = phc-test1.tif
 
-\chapter{Notes for development of image analysis for Vesicle Aspiration with MicroPipettes experiments}\label{chap:devnotes}
-
-The whole project can be divided in three ``subprojects'', which are mostly independent on each other in terms of development, but rather produce an input for next step:
-\begin{enumerate}
-	\item Experiment automation
-	\item Data extraction from images
-	\item Data analysis
-\end{enumerate}
-Let's consider these steps more closely
-
-\section{Experiment automatisation - LabVamp}\label{experiment}
-
-Since the project presumes development of software running on 3 different experimental setups, \emph{LabView}\copyright{} environment was chosen for this part. This should enable creating the core of the automation procedure common for all three setups and then just plugging in specific device drivers.
-
-Currently the LabView program (dubbed LabVamp) consist of 3 blocks: pressure reading, image acquisition and stage movement modules. The main conversation between modules is carried out by SNAP signal, that is ordering the camera to make a snapshot
-
-The pressure reading module is totally independent from all others. Inputs are only parameters for initializing (card number, config file, etc), output is a pressure value.
-
-The image acquisition module besides init values and real-time camera control inputs needs also a SNAP input command from stage controllig module, that will save a current image.
-
-The stage movement module needs (besides init parameters) inputs for desired positions and must output current positions plus SNAP signal.
-
-\section{Extraction of data form images - VamPy}\label{data}
+\section{Development Notes}
+\subsection{Extraction of data from images}\label{data}
 
 For now everything is done in Python with different additional packages.
 
@@ -35,7 +15,7 @@ The pseudocode-like draft for the algorithm for processing single image looks li
   \item get user input
   \item calculate positions of pipette walls
   \item calculate pipette radius
-  \item calculate the middle line (axis) of the system
+  \item calculate the axis of the system
   \item extract data along the axis from the picture
   \item find positions of 3 characteristic points on the axis
   \item calculate all derived parameters (vesicle radius, tip length, surface area, volume)
@@ -52,13 +32,13 @@ Python packages aside from Python Standard Library used or (probably) going to b
 	\item \emph{matplotlib} --- for plotting results
 \end{itemize}
 
-\subsection{Load picture to array}\label{loadpic}
+\subsubsection{Load picture to array}\label{loadpic}
 
 This is done with \emph{scipy} and \emph{PIL}, which allows for direct conversion from image file to \emph{numpy} array.
 
 On the other hand, \emph{wxPython}'s wxImage object could be probably used, thus eliminating the need of \emph{PIL} package, since I'm going to use \emph{wxPython} for GUI programming anyway. Unfortunately, wxImage still doesn't support \emph{numpy}-like array interface as of now, but this is planned feature for addition. Or buffers interface seems to be able to do this \ldots
 
-\subsection{Get user input}\label{getinput}
+\subsubsection{Get user input}\label{getinput}
 
 \begin{figure}
 	\includegraphics[width=\columnwidth]{figs/userinput.pdf}
@@ -66,7 +46,7 @@ On the other hand, \emph{wxPython}'s wxImage object could be probably used, thus
 	\label{fig:userinput}
 \end{figure}
 
-First of all user should crop the image so that everything but the vesicle is left out and rotate the picture so that the pipette \emph{sticks from left}. Let us assume the size of the image along the x-axis is now $N$. User supplies several sets of coordinates to define approximate regions of features locations (see \Fref{fig:userinput}):
+First of all user should crop the image so that everything but the vesicle is left out and rotate the picture so that the pipette \emph{sticks from left}. Let us assume the size of the image along the x-axis is now $N$. User supplies several sets of coordinates to define approximate regions of features locations (see Figure \ref{fig:userinput}):
 \begin{itemize}
 	\item overestimated position of the aspirated vesicle part $x_{a0}$ so that the tip of the aspirated vesicle part must be always to the left from this, $ x_a \in (0, x_{a0})$;
 	\item overestimated position of the outer part of the vesicle $x_{v0}$ so that the tip of the outer part of the vesicle is always to the right of it, $ x_v \in (x_{v0}, N)$;
@@ -74,8 +54,8 @@ First of all user should crop the image so that everything but the vesicle is le
 	\item approximate positions of pipette walls.
 \end{itemize}
 
-\subsection{Define pipette walls}\label{pipwalls}
-A cross-sections of the pipette are taken in two points $x=0$ and $x=x_{a0}$. The pipette walls are then taken as global minima in the regions corresponding to the approximate pipette walls positions for each cross-section (see \Fref{fig:pipcrosssection}), producing sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$. The $y$-positions can be further defined more accurately with subpixel resolution (see Section~\ref{subpix}).
+\subsubsection{Define pipette walls}\label{pipwalls}
+A cross-sections of the pipette are taken in two points $x=0$ and $x=x_{a0}$. The pipette walls are then taken as global minima in the regions corresponding to the approximate pipette walls positions for each cross-section (see Figure \ref{fig:pipcrosssection}), producing sets of coordinates $(x_1,y_1), (x_2,y_2)$ and $(x_3,y_3), (x_4,y_4)$. The $y$-positions can be further defined more accurately with subpixel resolution (see Section~\ref{subpix}).
 
 \begin{figure}%
 	\includegraphics[width=\columnwidth]{figs/pipcrosssection.pdf}%
@@ -83,7 +63,7 @@ A cross-sections of the pipette are taken in two points $x=0$ and $x=x_{a0}$. Th
 	\label{fig:pipcrosssection}%
 \end{figure}
 
-\subsection{Calculate pipette radius}\label{calcpiprad}
+\subsubsection{Calculate pipette radius}\label{calcpiprad}
 
 Distance (unsigned) from point $\left(x_0,y_0\right)$ to line $y=kx+b$ is given by:
 \begin{equation}
@@ -92,7 +72,7 @@ Distance (unsigned) from point $\left(x_0,y_0\right)$ to line $y=kx+b$ is given 
 \end{equation}
 Thus the diameter of the pipette for single image is calculated as mean of distances from every of 4 points to the line corresponding to the opposing wall. Then these values are again averaged between all images.
 
-\subsection{Calculate the middle line (axis) of the system}\label{calcaxis}
+\subsubsection{Calculate the middle line (axis) of the system}\label{calcaxis}
 
 \begin{figure}
 	\includegraphics[width=\columnwidth]{figs/pipetteaxis.pdf}
@@ -121,41 +101,44 @@ Small pitfall --- since at the end we need real distances between features, an a
 \end{equation}
 so that $1 \leq \epsilon \leq \sqrt{2}$. Thus the procedure of extracting brightness profile must also return the $\epsilon$ value along with profile itself to use it in final steps of determining distances. This is not necessary for profiles used for location of pipette walls, since by design only untilted profiles along pixel lines are used there, thus the scale in preserved.
 
-\subsection{Find positions of 3 characteristic points on the axis}\label{points}
+\subsubsection{Find positions of 3 characteristic points on the axis}\label{points}
 
 We are interested in 3 points on the axis of the system --- intersection of axis with outer vesicle, aspirated tip of a vesicle and the tip of the pipette. These manifest themselves as peaks (positive or negative) or steep jumps on the brightness profile along the axis. What exactly feature corresponds to what point of interest depends on the type of images one analyses.
 
-\subsubsection{Phase contrast images}\label{phcfeatures}
+\begin{itemize}
+	\item \textbf{Phase contrast images} \label{phcfeatures}
+		
+		\begin{figure}
+		\includegraphics[width=\columnwidth]{figs/phcaxisprofile.pdf}%
+		\caption{Brightness profile along the system axis for phase contrast image at Figure \ref{fig:pipetteaxis}. Green region corresponds to the user-supplied approximate pipette tip position. Red line denotes actual pipette tip position found. Other features are also clearly distinguishable.}%
+		\label{fig:phcaxisprofile}%
+		\end{figure}
+		
+		For phase contrast images (see Figure \ref{fig:phcaxisprofile}), the pipette tip ought to be a local minima or (in case of too small pipette and/or too bright illumination) a global maxima. Vesicle sides in turn are featured as steep jumps from dark to bright (so the inflection point is a choice for a feature position). 
+		
+		The pipette tip is first roughly located as the global maximum or minimum in the pipette tip search region, giving the position of the pipette tip with \emph{pixel resolution}. To get a \emph{subpixel resolution} of peak position its vicinity is fitted with some suitable profile (see Section \ref{subpix}) with parameters of the fit giving the value desired.
+		
+		As for inflection points, the rough positions are found by first applying a smoothing filter to the brightness profile, taking absolute value of smoothed profile's derivative (Savitzky-Golay \cite{Savitzky1964, Steinier1972} and Gauss smoothing/derivative filters are implemented for now) and than using user input for overestimated feature positions (see Section~\ref{getinput}) to define left and right search regions where global maxima for these regions are found, giving positions of steep jumps with \emph{pixel resolution} - see Figure \ref{fig:phcprofilegrad}. For \emph{subpixel resolution} the profile in the vicinity of estimated position must be fitted with suitable function with well-defined inflection point (see Section~\ref{subpix}).
+		
+		\begin{figure}%
+		\includegraphics[width=\columnwidth]{figs/phcprofilegrad.pdf}%
+		\caption{Result of applying gradient magnitude filter to gaussian-presmoothed profile from Figure \ref{fig:phcaxisprofile}. Red lines correspond to located features positions.}%
+		\label{fig:phcprofilegrad}%
+		\end{figure}
+		
+	\item \textbf{DIC images} \label{dicfeatures}
+		
+		For DIC images the aspirated tip is local minimum and the outer edge is local maximum in their respective search regions (or vice versa, depending on choice of polarizations) and pipette tip is (as with phase contrast images) either a local minimum or global maximum in the pipette tip search region. The fitting procedure by itself is the same as for peaks in~Section~\ref{phcfeatures}.
+		
+	\item \textbf{Subpixel resolution} \label{subpix}
+		
+		\emph{NOT YET IMPLEMENTED}
+		
+		Positions of features with subpixel resolutions can be found by making a non-linear least squares fit (\texttt{scipy.optimize.leastsq}, Levenberg-Marquardt implementation) of brightness profile in the vicinity of the pixel-resolved location of the feature using some suitable function. According to \cite{Bitler1999} brightness jumps on the edge of an object observed with phase contrast microscopy are described by integral sine function, with inflection point being the exact position of the object's edge. As for the peaks, for them the Gaussian bell function can be used with position of its maximum defining feature position with subpixel resolution.
 
-\begin{figure}%
-\includegraphics[width=\columnwidth]{figs/phcaxisprofile.pdf}%
-\caption{Brightness profile along the system axis for phase contrast image at \Fref{fig:pipetteaxis}. Green region corresponds to the user-supplied approximate pipette tip position. Red line denotes actual pipette tip position found. Other features are also clearly distinguishable.}%
-\label{fig:phcaxisprofile}%
-\end{figure}
+\end{itemize}
 
-For phase contrast images (see \Fref{fig:phcaxisprofile}), the pipette tip ought to be a local minima or (in case of too small pipette and/or too bright illumination) a global maxima. Vesicle sides in turn are featured as steep jumps from dark to bright (so the inflection point is a choice for a feature position). 
-
-The pipette tip is first roughly located as the global maximum or minimum in the pipette tip search region, giving the position of the pipette tip with \emph{pixel resolution}. To get a \emph{subpixel resolution} of peak position its vicinity is fitted with some suitable profile (see Section \ref{subpix}) with parameters of the fit giving the value desired.
-
-As for inflection points, the rough positions are found by first applying a smoothing filter to the brightness profile, taking absolute value of smoothed profile's derivative (Savitzky-Golay \cite{Savitzky1964, Steinier1972} and Gauss smoothing/derivative filters are implemented for now) and than using user input for overestimated feature positions (see Section~\ref{getinput}) to define left and right search regions where global maxima for these regions are found, giving positions of steep jumps with \emph{pixel resolution} - see \Fref{fig:phcprofilegrad}. For \emph{subpixel resolution} the profile in the vicinity of estimated position must be fitted with suitable function with well-defined inflection point (see Section~\ref{subpix}).
-
-\begin{figure}%
-\includegraphics[width=\columnwidth]{figs/phcprofilegrad.pdf}%
-\caption{Result of applying gradient magnitude filter to gaussian-presmoothed profile from \Fref{fig:phcaxisprofile}. Red lines correspond to located features positions.}%
-\label{fig:phcprofilegrad}%
-\end{figure}
-
-\subsubsection{DIC images}\label{dicfeatures}
-
-For DIC images the aspirated tip is local minimum and the outer edge is local maximum in their respective search regions (or vice versa, depending on choice of polarizations) and pipette tip is (as with phase contrast images) either a local minimum or global maximum in the pipette tip search region. The fitting procedure by itself is the same as for peaks in~Section~\ref{phcfeatures}.
-
-\subsubsection{Subpixel resolution}\label{subpix}
-\emph{NOT YET IMPLEMENTED}
-
-Positions of features with subpixel resolutions can be found by making a non-linear least squares fit (\texttt{scipy.optimize.leastsq}, Levenberg-Marquardt implementation) of brightness profile in the vicinity of the pixel-resolved location of the feature using some suitable function. According to \cite{Bitler1999} brightness jumps on the edge of an object observed with phase contrast microscopy are described by integral sine function, with inflection point being the exact position of the object's edge. As for the peaks, for them the Gaussian bell function can be used with position of its maximum defining feature position with subpixel resolution.
-
-
-\subsection{Calculation of derived parameters}\label{results}
+\subsubsection{Calculation of derived parameters}\label{results}
 
 \begin{figure}%
 \includegraphics[width=\columnwidth]{figs/pipettesketch.pdf}%
@@ -163,7 +146,7 @@ Positions of features with subpixel resolutions can be found by making a non-lin
 \label{fig:pipettesketch}%
 \end{figure}
 
-Given positions of outer vesicle edge as $x_v$, pipette tip $x_p$ and aspirated vesicle tip $x_t$ plus the pipette radius $r$ together with their corresponding errors $\delta x_v$, $\delta x_p$, $\delta x_t$ and $\delta r$ and assuming total cylindrical symmetry of the system along the system axis and spherical form of the vesicle outside the pipette one can calculate the desired parameters (see \Fref{fig:pipettesketch}).
+Given positions of outer vesicle edge as $x_v$, pipette tip $x_p$ and aspirated vesicle tip $x_t$ plus the pipette radius $r$ together with their corresponding errors $\delta x_v$, $\delta x_p$, $\delta x_t$ and $\delta r$ and assuming total cylindrical symmetry of the system along the system axis and spherical form of the vesicle outside the pipette one can calculate the desired parameters (see Figure \ref{fig:pipettesketch}).
 
 Denoting length of the vesicle part outside the pipette as $l_v = \left|x_p-x_v\right|$ with error $\delta l_v = \delta x_p + \delta x_v$ and the length of the aspirated tip as $l_a = \left|x_p-x_t\right|$ with error $\delta l_a = \delta x_p + \delta x_t$, the radius of the outside vesicle is
 \begin{equation*}
@@ -227,8 +210,8 @@ and
 \end{equation*}
 Total area and volume of the vesicle are then $S = S_\text{out}+S_\text{in}$ and $V = V_\text{out}+V_\text{in}$ with errors $\delta S = \delta S_\text{out} + \delta S_\text{in}$ and $\delta V = \delta V_\text{out} + \delta V_\text{in}$ respectively.
 
-\section{Data Analysis}\label{analysis}
-\subsection{Classical procedure}
+\subsection{Data Analysis}\label{analysis}
+\subsubsection{Classical procedure}
 Having combined data acquired from image analysis together with corresponding pressure values obtained in experiment one finds elastic properties of membrane by fitting low-tension regime with logarithm and high-tension regime with linear functions. Also some corrections pointed out in \cite{Henriksen2004, Fournier2001} could be accounted for here, by trying to fit the whole range of pressures with one general function.
 
 Currently tensions are calculated according to simple model after Evans:
@@ -259,7 +242,7 @@ Dilations:
 		\frac{\Delta L}{R_p}\gamma
 		\label{eq:alpha-henriksen-simple}
 	\end{equation}
-	where $\gamma$ as in \eref{eq:alpha-henriksen}.
+	where $\gamma$ as in equation \ref{eq:alpha-henriksen}.
 \end{itemize}
 
 Fittings (done with Orthogonal Distance Regression):
@@ -268,5 +251,5 @@ Fittings (done with Orthogonal Distance Regression):
 	\item Simple model for stretching elasticity: $\alpha=\frac{\tau}{K}+\alpha_0$
 \end{itemize}
 
-\subsection{Modern procedure}
+\subsubsection{Modern procedure}
 The overall ultimate goal is to implement a MCMC (Markov Chain Monte Carlo) algorithm found in  \cite{Henriksen2004}.

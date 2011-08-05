@@ -1,163 +1,18 @@
-%manuals.tex
-% user guides for software developed within VAMP (Vesicle Aspiration with MicroPipettes) project
+% !TeX root = vampy.tex
+%vampy-ug.tex
+% user guides for VAMPy (image analysis part of VAMP project)
 
-\chapter{User Guides for Vesicle Aspiration with MicroPipettes (VAMP) project}\label{chap:userguide}
+\section{User Guide}\label{userguide}
 
-\section{LabVAMP - aspiration experiment automatization made with LabVIEW\copyright{}}\label{labvamp}
-
-\subsection{What you can do with it}\label{labvamp-features}
-
-With this software you can automate (to some extend) the experiments on aspirating the vesicles with micro-pipettes. In particular you can:
-\begin{itemize}
-	\item Control the position of 2 stages independently.
-	\item Read outputs of two pressure sensors corresponding to these stages
-	\item View real-time camera output and control it's zoom and pan.
-	\item Save one image or a series of images (with no definable frame rate, just as fast as possible) to the directory of your choice.
-	\item Perform scanning through user defined pressure sets (independent for 2 stages), with definable timeout after reaching desired stage positions (to let the pressure reach the pipette and equilibrate) together with number of images to make for each pressure and time gap between these images (for later averaging purposes).
-\end{itemize}
-
-\subsection{User Interface}\label{labvamp-ui}
-
-\begin{figure}[htbp]
-	\centering
-		\includegraphics[width=1.00\textwidth]{figs/labvamp_ui.pdf}
-	\caption{LabVAMP User Interface}
-	\label{fig:labvampui}
-\end{figure}
-
-\begin{enumerate}
-	
-	\item Image display unit:
-	
-	\begin{figure}[htbp]
-		\centering
-			\includegraphics[width=1.00\textwidth]{figs/labvamp_imgdisplay.pdf}
-		\caption{Image Display Unit}
-		\label{fig:LabVAMP_imgdisplay}
-	\end{figure}
-	
-	\begin{enumerate}
-		\item Image window, showing the live image from the camera
-		\item Image tools palette. You are interested in first and third tools - zoom tool and pan tool (other features are not implemented). Zoom tool allows you to zoom in and out of the image by clicking and SHIFT-clicking respectively (the cursor will change accordingly). Pan tool allows you to drag the zoomed image without use of scrollbars.
-		\item Image status bar, displays resolution of the image, current level of zoom and current pixel brightness value under the cursor.
-	\end{enumerate}
-	
-	\item Pressures display unit:
-	
-\begin{figure}[htbp]
-	\centering
-		\includegraphics{figs/labvamp_press.pdf}
-	\caption{Pressures Display Unit}
-	\label{fig:LabVAMP_press}
-\end{figure}
-	
-	\begin{enumerate}
-		\item Pressure readings, in kPa. Items are color-coded together with stage numbers.
-		\item Pressure sensors multipliers. These are values for converting from readings of pressure transducers (in V) to pressures (in kPa), defined while calibrating the sensors. Zero shift is not accounted for since only change in pressure has a meaning in this experiment.
-	\end{enumerate}
-	
-	\item Stages control unit:
-	
-	\begin{figure}[htbp]
-		\centering
-			\includegraphics{figs/labvamp_stages.pdf}
-		\caption{Stages Control Unit}
-		\label{fig:LabVAMP_stages}
-	\end{figure}
-	
-	\begin{enumerate}
-		\item Stage names as defined by C-843 controller card configuration file.
-		\item ``Init'' LED - is lit when both stages have been initialized and are ready to accept commands.
-		\item Velocity control - controls how fast stages are moving (in $mm/sec$).
-		\item Position control - controls position of stages (in mm). Note that $1~mm$ of water equals to $9.81~Pa \approx 0.01~kPa$
-		\item ``On Target'' LEDs - indicate that respective stage has arrived at the position defined by position control.
-	\end{enumerate}
-	
-	\item Camera control unit:
-	
-	\begin{figure}
-		\centering
-			\includegraphics{figs/labvamp_cam.pdf}
-		\caption{Camera Control Unit}
-		\label{fig:labvamp_cam}
-	\end{figure}
-
-	\begin{enumerate}
-		\item Camera information - current camera interface name (as defined by LabVIEW), exposure time and gain value.
-		\item Scan settings:
-		\begin{enumerate}
-			\item ``Timeout'' - time to wait after arriving at target position before making snapshots
-			\item ``AverImg'' - how many images to make for each pressure protocol item
-			\item ``Frame Gap'' - time between making snapshots for one pressure protocol item.
-		\end{enumerate}
-		\item Manual image saving:
-		\begin{enumerate}
-			\item ``Save one'' button - saves one image in the defined folder, with predefined file naming scheme (see \ref{labvamp-work}).
-			\item ``Save Seq'' button - saves a sequence of images in the defined folder with predefined file naming scheme (see \ref{labvamp-work}).
-			\item ``Saving..'' LED - indicates that the sequence of images is being saved.
-		\end{enumerate} 
-	\end{enumerate}
-	
-	\item Scan Control Unit:
-	
-	\begin{figure}[htbp]
-		\centering
-			\includegraphics[width=1.00\textwidth]{figs/labvamp_scan.pdf}
-		\caption{Scan Control Unit}
-		\label{fig:LabVAMP_scan}
-	\end{figure}
-
-	\begin{itemize}
-		\item Image folder - allows you to choose where to save images.
-		\item ``Rezero/Scan'' button - remembers the current position(pressure) as a zero and starts scanning of the pressure range (see \ref{labvamp-work}).
-		\item ``Step.. from...'' - indicates the position in pressure protocol being processed.
-		\item ``STOP ALL'' button - cancels current operations and exits the program. Mind the limitations \ref{labvamp-limits}!
-	\end{itemize}
-\end{enumerate}
-
-\subsection{Work flow}\label{labvamp-work}
-\begin{enumerate}
-	\item Launch camera dedicated driver to tune all the parameters needed (image size, exposure, gain). Close the driver software.
-	\item Launch LabVAMP. The picture from the camera will appear. The stages will begin to move while initializing. Meanwhile you can enter the rough estimate for initial position in the position fields - stages will move to this position when having initialized. The LEDs ``Initialized'' and ``On Target'' indicate, correspondingly, the state of the stages and whether the stage is in position set by ``Positions'' control.
-	\item When the ``Initialized'' and ``On Target'' LEDs are lit, you can start the experiment.
-	\item To save a single image, choose a directory where to save them, and press ``Save One'' button. The image will be saved in the chosen directory as PNG file with filename denoting the time the image was saved with microseconds precission (HH-MM-SS.XXX.png).
-	\item To save the sequence of images choose the directory where to save them and press ``Save Seq'' button. The button remains pressed, and the ``Saving'' LED is on. To stop saving sequence press ``Save Seq'' button again so it looks depressed. Mind the limitations noted in \ref{labvamp-limits}. Images are saved with the same file name scheme as with single snapshots.
-	\item To move stages adjust the position and velocity inputs and observe changes on pressure readings. Pressure values (numbers and arrows) are color-coded with corresponding stages. The output is in kPa with 2 decimal digits since it is roughly the accuracy of the pressure sensor itself (approx 8 Pa).
-	\item Please note, that pressure sensor \emph{does not} show the pressure applied to the pipette. It shows the pressure arising from different hight of movable and unmovable reference water vessels. Hence, with pressure sensor you should observe the \emph{difference} in pressures.
-	\item To perform automatic scanning of a pressure range:
-	\begin{enumerate}
-		\item Prepare the pressure protocol file. This must be a simple ASCII text file with 2 columns (TAB separated) of pressure values \emph{in Pa}. Each column corresponds to one stage, and so each row corresponds to one particular position of stages, and hence pressures applied to both pipettes and recorded with camera afterwards. Please note that these pressures will be applied \emph{relative} to some ``zero''-value you will choose in the course of the experiment. If you will use only one stage, fill values for another one with zeroes.
-		\item Adjust the pressure in the pipette(s) so that the vesicle(s) is merely hold. This will be you zero-pressure when supposedly the tension is as close to the unperturbed state as possible.
-		\item Adjust the ``timeout'' value, which is how long the program will wait after the stages arrived at desired position during scan before making any snapshots. This is to ensure that pressure has indeed reached the pipette mouth and equilibrated - in some situations (like very thin pipette) this can take quite long, so you better first play with the stages to make some estimation of this parameter.
-		\item ``AverImg'' and ``Frame gap'' are used to make several snapshots for each position in pressure protocol to get semi-subpixel resolution afterwards by averaging between the images. AverImg is thus the number of images to take for every protocol position and ``frame gap'' is time between these snapshots.
-		\item If you haven't done it so far (or if you want to change it) choose the directory where the images will be saved.
-		\item Press ``Rezero/Scan'' button. You will be asked for the location of pressure protocol file you created earlier. After you choose the file, the scan will commence, with number of current row processed being indicated as ``Step''.
-		\item Images are saved in the directory chosen as PNG images (for the TELI DCL3690 TIF-format was ruled out since most software apparently can not adequately cope with 12-bit TIF generated by LabVIEW), with the following naming scheme:\\ \emph{[number of step]-[pressure on stage 1]-[pressure on stage 2]\_[index of AverImg].png}.
-		\item Mind the limitations of the program! \ref{labvamp-limits}
-	\end{enumerate}
-\end{enumerate}
-
-\subsection{Limitations}\label{labvamp-limits}
-Currently LabVAMP has the following limitations:
-\begin{itemize}
-	\item The actual camera setup must be made \emph{before} LabVAMP is launched, with camera original drivers. LabVAMP merely shows some current relevant camera settings, like shutter speed, gain level and image resolution. The LabVAMP \emph{and} camera drivers \emph{can not be run simultaneously}.
-	\item the actual frame rate you get when saving sequence of images does heavily depend on the image parameters. If it is the full scale image (1280x1040 for TELI CS-3960DCL) then the frame rate is of the order of 7 fps, but for VGA images (640x480) (and probably for SVGA also) it is already close to technical limits of the camera, i.e. 30 fps.
-	\item The pressure readings are currently absolute (not re-zeroed) and are more of cosmetic type - they are not used in actual calculation of stage positions.
-	\item When the software is launched the stages will move, probably by the whole range (depending on the stage), as a part of initialization, thus applying pressures to pipettes, so operate the pipettes after the LabVAMP is launched (or close the pipette valve before launching and choose wisely the initial stage positions).
-	\item After the scan is started, the process can not be interfered - pressing STOP ALL button will  stop the outputs of camera and pressure sensor at once (and thus the saving of images), and the stage will continue scanning/waiting until the current step in pressure protocol complete. Also the scan control values (timeout etc) and stage settings (like speed) are frozen at the beginning of the scan, so they can not be changed afterwards. You can of course close the whole program by hand, but then you will leave the hardware in unknown state and very likely will need to access the hardware (pressure sensor, camera and stages) first by their native drivers before launching LabVAMP again, otherwise you might get an error and/or crush the program.
-	\item After the scan is complete, the final dialog asks about quitting the program. If you answer NO, LabVAMP will only continue showing you the output of the camera, but you will not be able neither to move stages, nor save images, let alone start a new scan. To repeat the process the program should be shut down (by pressing STOP ALL) and restarted.
-\end{itemize}
-
-\section{VAMPy - aspiration image analysis made with Python}\label{vampy}
 \emph{Being in active development, the state of the program might be quite different from what is written here!}
 
 As it is now (not packaged in self-contained executable) you need the following software to be installed on your computer to run VAMPy:
 \begin{itemize}
-	\item Python 2.6.6 (\url{http://www.python.org}
-	\item NumPy 1.5 (\url{http://www.scipy.org}
-	\item SciPy 0.8 (\url{http://www.scipy.org}
-	\item matplotlib 1.00 (\url{http://matplotlib.sourceforge.net/})
-	\item wxPython 2.9.11 (\url{http://www.wxpython.org}
+	\item Python 2.7.2 (\url{http://www.python.org}
+	\item NumPy 1.6.1 (\url{http://www.scipy.org}
+	\item SciPy 0.9 (\url{http://www.scipy.org}
+	\item matplotlib 1.0.1 (\url{http://matplotlib.sourceforge.net/})
+	\item wxPython 2.8.12.1 (\url{http://www.wxpython.org}
 	\item Python Image Library 1.1.7 (\url{www.pythonware.com/products/pil/}) 
 \end{itemize}
 All of the above is Open Source and freely available from respective websites. Version numbers are the ones with which the software was developed and tested, but it might also work with older versions and hopefully will work with future versions of Python language and packages. The program is cross-platform, it runs on Windows (tested), Linux/Unix (tested) and Mac (not tested) as long as all dependencies are met.
