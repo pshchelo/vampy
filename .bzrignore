@@ -1,4 +1,4 @@
-.pydevproject
+.settings
 *.aux
 *.bbl
 *.blg
@@ -6,4 +6,4 @@
 *.out
 *.toc
 *.dvi
-*.synctex* 
+*.synctex*

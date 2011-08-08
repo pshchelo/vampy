@@ -173,7 +173,7 @@ def fit_gauss(y, sgn):
     gauss_fit = fitcurve(gauss, x, y, pinit)
     return gauss_fit.fit()
 
-def fit_err():
+def fit_err(*args):
     return
 #===============================================================================
 # Evans Model for dilation vs tension
