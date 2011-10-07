@@ -1,0 +1,12 @@
+- saving extra output as pickles and NPZ files 
+- filtering of data in tensions plot 
+- launcher to choose activity (analyse images or load geometry or load tensions) 
+- improve on-line help 
+- choice of what to plot on geometry window 
+- choice of what to plot on debug window 
+- improve initialization of pipette walls/axis sliders 
+- two-step analysis (first open geometry window, then from it manually open tensions window) 
+- bind available zoom to "cropping" 
+- load image config files by hand 
+- change all number input fields in the image analysis window to wx.SpinCtrl (most as int) 
+- compare and fix alighment/stretching of gui element on GTK and Win32
