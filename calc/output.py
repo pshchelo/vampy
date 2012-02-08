@@ -68,3 +68,4 @@ class DataWriter():
             outfile.write(line)
         outfile.close()
         return
+

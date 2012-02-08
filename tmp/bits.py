@@ -239,3 +239,4 @@ def wall_points_pix_3(img, refsx, axisy, sigma):
         ref = np.concatenate((xy,drefe),1)
         refs = np.append(refs, ref)
     return refs.reshape(-1,2,2)
+

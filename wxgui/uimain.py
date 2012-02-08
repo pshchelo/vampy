@@ -702,3 +702,4 @@ class VampyFrame(wx.Frame):
         @param evt:
         """
         self.OnAbout(evt)
+

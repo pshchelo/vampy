@@ -285,3 +285,4 @@ class TensionsFrame(wx.Frame):
             self.axes.set_ylim(y.min()-y.ptp()*0.05, y.max()+y.ptp()*0.05)
 
         self.canvas.draw()
+

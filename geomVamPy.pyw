@@ -14,3 +14,4 @@ class tensVamPyApp(wx.App):
 
 app = tensVamPyApp(False)
 app.MainLoop()
+

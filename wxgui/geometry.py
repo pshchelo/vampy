@@ -192,3 +192,4 @@ class GeometryFrame(wx.Frame):
 #            self.plots[item] = plot
         self.figure.suptitle('Pipette radius (px): %f +-%f'%tuple(self.data.get('piprad', (0,0))))
         self.canvas.draw()
+
