@@ -3,6 +3,7 @@
 import wx
 from wxgui import uimain, resources
 
+
 class VamPyApp(wx.App):
     '''Actual wxPython application'''
     def OnInit(self):
@@ -10,7 +11,7 @@ class VamPyApp(wx.App):
         wx.ArtProvider.Push(customartprovider)
         frame = uimain.VampyFrame(parent=None, id=-1)
         frame.Show()
-        return True   
+        return True
 
 app = VamPyApp(False)
 app.MainLoop()
