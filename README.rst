@@ -8,7 +8,7 @@ Analyse images of micropipette vesicle aspiration experiment to extract values f
 
 Screenshot
 ==========
-.. image:: https://bitbucket.org/pshchelo/vampy/raw/master/docs/figs/vampymain.png
+.. image:: https://raw.githubusercontent.com/pshchelo/vampy/master/docs/figs/vampymain.png
 
 More info
 =========
